@@ -103,7 +103,7 @@ public class AddMapFrame extends JDialog{
 					setVisible(false);
 				} catch (Exception e1) {
 					//e2.printStackTrace();
-					JOptionPane.showMessageDialog(ui.mainFrame, e1.getMessage(),"消息",JOptionPane.WARNING_MESSAGE);
+//					JOptionPane.showMessageDialog(ui.mainFrame, e1.getMessage(),"消息",JOptionPane.WARNING_MESSAGE);
 				}
 			}
 		});

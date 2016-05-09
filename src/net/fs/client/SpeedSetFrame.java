@@ -73,7 +73,7 @@ public class SpeedSetFrame extends JDialog{
 					setVisible(false);
 				} catch (Exception e2) {
 					//e2.printStackTrace();
-					JOptionPane.showMessageDialog(ui.mainFrame, "输入错误!");
+//					JOptionPane.showMessageDialog(ui.mainFrame, "输入错误!");
 				}
 				
 			}
