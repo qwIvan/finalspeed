@@ -23,16 +23,16 @@ public class ConnectionUDP {
 	
 	public boolean stopnow=false;
 	
-	public ConnectionUDP(Route ro,InetAddress dstIp,int dstPort,int mode,int connectId,ClientControl clientControl) {
+	public ConnectionUDP(Route ro,InetAddress dstIp,int dstPort,int mode,int connectId,ClientControl clientControl) throws Exception {
 		this.clientControl=clientControl;
 		this.route=ro;
 		this.dstIp=dstIp;
 		this.dstPort=dstPort;
 		if(mode==1){
-			//MLog.println("                 发起连接RUDP "+dstIp+":"+dstPort+" connectId "+connectId);
+			//System.out.println("                 发起连接RUDP "+dstIp+":"+dstPort+" connectId "+connectId);
 		}else if(mode==2){
 			
-			//MLog.println("                 接受连接RUDP "+dstIp+":"+dstPort+" connectId "+connectId);
+			//System.out.println("                 接受连接RUDP "+dstIp+":"+dstPort+" connectId "+connectId);
 		}
 		this.connectId=connectId;
 		try {
@@ -48,13 +48,13 @@ public class ConnectionUDP {
 			connected=false;
 			route.connTable.remove(connectId);
 			e.printStackTrace();
-			//#MLog.println("                 连接失败RUDP "+connectId);
+			//#System.out.println("                 连接失败RUDP "+connectId);
 			synchronized(this){
 				notifyAll();
 			}
 			throw e;
 		}
-		    //#MLog.println("                 连接成功RUDP "+connectId);
+		    //#System.out.println("                 连接成功RUDP "+connectId);
 		    synchronized(this){
 				notifyAll();
 			}
@@ -62,7 +62,7 @@ public class ConnectionUDP {
 
 	@Override
 	public String toString(){
-		return dstIp + ":" + dstPort;
+		return new String(dstIp+":"+dstPort);
 	}
 	
 	public boolean isConnected(){

@@ -4,7 +4,6 @@ package net.fs.client;
 
 import net.fs.rudp.UDPInputStream;
 import net.fs.rudp.UDPOutputStream;
-import net.fs.utils.MLog;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -18,7 +17,7 @@ public class Pipe {
 
 	public void pipe(InputStream is, UDPOutputStream tos) throws Exception{
 		
-		int len;
+		int len=0;
 		byte[] buf=new byte[100*1024];
 		boolean sendeda=false;
 		while((len=is.read(buf))>0){
@@ -32,7 +31,7 @@ public class Pipe {
 
 
 	public void pipe(UDPInputStream tis, OutputStream os) throws Exception{
-		int len;
+		int len=0;
 		byte[] buf=new byte[1000];
 		boolean sended=false;
 		boolean sendedb=false;
@@ -44,11 +43,11 @@ public class Pipe {
 				sendedb=true;
 			}
 			if(dstPort>0){
-				if(ClientUI.ui!=null){
+				if(FSClient.ui!=null){
 					if(!msged){
 						msged=true;
 						String msg="端口"+dstPort+"连接成功";
-						MLog.println(msg);
+						System.out.println(msg);
 					}
 					
 				}

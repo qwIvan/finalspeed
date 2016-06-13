@@ -5,7 +5,6 @@ package net.fs.server;
 import com.alibaba.fastjson.JSONObject;
 import net.fs.client.Pipe;
 import net.fs.rudp.*;
-import net.fs.utils.MLog;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,7 +48,7 @@ public class MapTunnelProcessor implements ConnectionProcessor{
 			final int dstPort=requestJSon.getIntValue("dst_port");
 			String message="";
 			JSONObject responeJSon=new JSONObject();
-			int code;
+			int code=Constant.code_failed;			
 			code=Constant.code_success;
 			responeJSon.put("code", code);
 			responeJSon.put("message", message);
@@ -75,7 +74,7 @@ public class MapTunnelProcessor implements ConnectionProcessor{
                 }finally{
                     close();
                     if(p1.getReadedLength()==0){
-                        MLog.println("端口"+dstPort+"无返回数据");
+                        System.out.println("端口"+dstPort+"无返回数据");
                     }
                 }
             });

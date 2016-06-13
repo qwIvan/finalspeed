@@ -36,6 +36,7 @@ class ClientNoUI{
 			JSONObject json=JSONObject.parseObject(content);
 			cfg.setServerAddress(json.getString("server_address"));
 			cfg.setServerPort(json.getIntValue("server_port"));
+			cfg.setRemotePort(json.getIntValue("remote_port"));
 			cfg.setDownloadSpeed(json.getIntValue("download_speed"));
 			cfg.setUploadSpeed(json.getIntValue("upload_speed"));
 			config=cfg;

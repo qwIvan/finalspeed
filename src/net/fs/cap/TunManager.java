@@ -3,7 +3,6 @@
 package net.fs.cap;
 
 import net.fs.rudp.CopiedIterator;
-import net.fs.utils.MLog;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,7 +14,7 @@ class TunManager {
 
 	private TCPTun defaultTcpTun;
 
-	private final Object syn_scan=new Object();
+	private Object syn_scan=new Object();
 	
 	private CapEnv capEnv;
 	
@@ -52,7 +51,7 @@ class TunManager {
 						connTable.remove(key);
 						if(capEnv.client){
 							defaultTcpTun=null;
-							MLog.println("tcp隧道超时");
+							System.out.println("tcp隧道超时");
 						}
 					}
 				}else{
@@ -84,7 +83,7 @@ class TunManager {
 	void addConnection_Client(TCPTun conn) {
 		synchronized (syn_scan) {
 			String key=conn.remoteAddress.getHostAddress()+":"+conn.remotePort+":"+conn.localPort;
-			//MLog.println("addConnection "+key);
+			//System.out.println("addConnection "+key);
 			conn.setKey(key);
 			connTable.put(key, conn);
 		}
@@ -97,7 +96,7 @@ class TunManager {
 	void addConnection_Server(TCPTun conn) {
 		synchronized (syn_scan) {
 			String key=conn.remoteAddress.getHostAddress()+":"+conn.remotePort;
-			//MLog.println("addConnection "+key);
+			//System.out.println("addConnection "+key);
 			conn.setKey(key);
 			connTable.put(key, conn);
 		}

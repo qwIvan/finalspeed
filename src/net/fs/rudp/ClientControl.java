@@ -5,7 +5,6 @@ package net.fs.rudp;
 import net.fs.rudp.message.PingMessage;
 import net.fs.rudp.message.PingMessage2;
 import net.fs.utils.ByteIntConvert;
-import net.fs.utils.MLog;
 import net.fs.utils.MessageCheck;
 
 import java.io.IOException;
@@ -36,7 +35,7 @@ public class ClientControl {
 	
 	private int currentSpeed=initSpeed;
 
-	private final Object syn_timeid=new Object();
+	private Object syn_timeid=new Object();
 	
 	private long sended=0;
 	
@@ -64,7 +63,7 @@ public class ClientControl {
 	
 	private HashMap<Integer, ConnectionUDP> connTable= new HashMap<>();
 		
-	private final Object syn_connTable=new Object();
+	private Object syn_connTable=new Object();
 
 	public ResendManage resendMange;
 	
@@ -83,7 +82,7 @@ public class ClientControl {
 
 	public void onReceivePacket(DatagramPacket dp){
 		byte[] dpData=dp.getData();
-		int sType;
+		int sType=0;
 		sType=MessageCheck.checkSType(dp);
 		int remote_clientId=ByteIntConvert.toInt(dpData, 8);
 		if(sType==net.fs.rudp.message.MessageType.sType_PingMessage){
@@ -96,14 +95,14 @@ public class ClientControl {
 			Long t=pingTable.get(pm.getPingId());
 			if(t!=null){
 				pingDelay=(int) (System.currentTimeMillis()-t);
-				String protocal;
+				String protocal="";
 				if(route.isUseTcpTun()){
 					protocal="tcp";
 				}else {
 					protocal="udp";
 				}
-				//MLog.println("    receive_ping222: "+pm.getPingId()+" "+new Date());
-				MLog.println("delay_"+protocal+" "+pingDelay+"ms "+dp.getAddress().getHostAddress()+":"+dp.getPort());
+				//System.out.println("    receive_ping222: "+pm.getPingId()+" "+new Date());
+				System.out.println("delay_"+protocal+" "+pingDelay+"ms "+dp.getAddress().getHostAddress()+":"+dp.getPort());
 			}
 		}
 	}
@@ -146,7 +145,7 @@ public class ClientControl {
 	}
 	
 	private Iterator<Integer> getConnTableIterator(){
-		Iterator<Integer> it;
+		Iterator<Integer> it=null;
 		synchronized (syn_connTable) {
 			it=new CopiedIterator(connTable.keySet().iterator());
 		}
@@ -186,11 +185,12 @@ public class ClientControl {
 	}
 
 	SendRecord getSendRecord(int timeId){
-		SendRecord record;
+		SendRecord record=null;
 		synchronized (syn_timeid) {
 			record=sendRecordTable.get(timeId);
 			if(record==null){
 				record=new SendRecord();
+				record.setTimeId(timeId);
 			    sendRecordTable.put(timeId, record);
 			}
 		}
@@ -240,9 +240,9 @@ public class ClientControl {
 						e.printStackTrace();
 					}
 					trueSleep_All+=(System.nanoTime()-t1);
-					//#MLog.println("sssssssssss "+(trueSleep_All-needSleep_All)/(1000*1000));
+					//#System.out.println("sssssssssss "+(trueSleep_All-needSleep_All)/(1000*1000));
 				}
-				////#MLog.println("sleepb "+sleepTime+" l "+sended+" s "+s+" n "+n+" tt "+(moreTime));
+				////#System.out.println("sleepb "+sleepTime+" l "+sended+" s "+s+" n "+n+" tt "+(moreTime));
 			}
 			sended=0;
 		}

@@ -11,7 +11,7 @@ public class UDPInputStream {
 	}
 	
 	public int read(byte[] b, int off, int len) throws ConnectException, InterruptedException {
-		byte[] b2;
+		byte[] b2=null;
 		b2 = read2();
 		if(len<b2.length){
 			throw new ConnectException();
@@ -21,12 +21,15 @@ public class UDPInputStream {
 		}
 	}
 	
-	public byte[] read2() throws ConnectException {
+	public byte[] read2() throws ConnectException, InterruptedException{
 		return receiver.receive();
 	}
 	
 	public void closeStream_Local(){
-		receiver.closeStream_Local();
+		boolean streamClosed = false;
+		if(!streamClosed){
+			receiver.closeStream_Local();
+		}
 	}
 
 

@@ -4,7 +4,6 @@ package net.fs.client;
 
 import com.alibaba.fastjson.JSONObject;
 import net.fs.rudp.*;
-import net.fs.utils.MLog;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -59,7 +58,7 @@ class PortMapProcess implements ClientProcessorInterface{
 			JSONObject responeJSon=JSONObject.parseObject(hs);
 			int code=responeJSon.getIntValue("code");
 			String message=responeJSon.getString("message");
-			String uimessage;
+			String uimessage="";
 			if(code==Constant.code_success){
 
 				Route.es.execute(() -> {
@@ -74,7 +73,7 @@ class PortMapProcess implements ClientProcessorInterface{
                         if(p2.getReadedLength()==0){
                             //String msg="fs服务连接成功,加速端口"+dstPort+"连接失败1";
                             String msg="端口"+dstPort+"无返回数据";
-                            MLog.println(msg);
+                            System.out.println(msg);
                         }
                     }
                 });
@@ -91,12 +90,12 @@ class PortMapProcess implements ClientProcessorInterface{
 			}else {
 				close();
 				uimessage="fs服务连接成功,端口"+dstPort+"连接失败2";
-				MLog.println(uimessage);
+				System.out.println(uimessage);
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			String msg="fs服务连接失败!";
-			MLog.println(msg);
+			System.out.println(msg);
 		}
 
 	}

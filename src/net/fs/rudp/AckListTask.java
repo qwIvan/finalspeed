@@ -12,15 +12,15 @@ class AckListTask {
 	private ArrayList<Integer> ackList;
 	@SuppressWarnings("unchecked")
 	private
-	HashSet<Integer> set;
+	HashSet set;
 	AckListTask(ConnectionUDP conn){
 		this.conn=conn;
-		ackList=new ArrayList<>();
-		set=new HashSet<>();
+		ackList=new ArrayList();
+		set=new HashSet();
 	}
 	
 	synchronized void addAck(int sequence){
-		////#MLog.println("sendACK "+sequence);
+		////#System.out.println("sendACK "+sequence);
 		if(!set.contains(sequence)){
 			ackList.add(sequence);
 			set.add(sequence);
@@ -31,7 +31,7 @@ class AckListTask {
 		int offset=0;
 		int packetLength=RUDPConfig.ackListSum;
 		int length=ackList.size();
-		////#MLog.println("ffffffffaaaaaaaaa "+length);
+		////#System.out.println("ffffffffaaaaaaaaa "+length);
 		int sum=(length/packetLength);
 		if(length%packetLength!=0){
 			sum+=1;
@@ -52,7 +52,7 @@ class AckListTask {
 //				conn.sender.sendALMessage(nl);
 //				conn.sender.sendALMessage(nl);
 				offset+=packetLength;
-				////#MLog.println("fffffffffa "+nl.size());
+				////#System.out.println("fffffffffa "+nl.size());
 				if(offset+len>length){
 					len=length-(sum-1)*packetLength;
 				}

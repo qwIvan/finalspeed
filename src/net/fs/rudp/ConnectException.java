@@ -10,7 +10,7 @@ class ConnectException extends Exception{
 	}
 	@Override
 	public void printStackTrace(){
-		//#MLog.println("连接异常 "+message);
+		//#System.out.println("连接异常 "+message);
 	}
 
 }

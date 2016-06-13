@@ -42,9 +42,9 @@ class PacketUtils {
 			MacAddress dstAddrress_mac,
 			IpV4Packet.Builder builder_ipv4){
 
-		org.pcap4j.packet.Packet.Builder builder;
-		EtherType etherType;
-		Packet p;
+		org.pcap4j.packet.Packet.Builder builder=null;
+		EtherType etherType=null;
+		Packet p=null;
 		if(ppp){
 			etherType=EtherType.PPPOE_SESSION_STAGE;
 			
@@ -87,7 +87,7 @@ class PacketUtils {
 			Inet4Address srcAddress,short srcPort,
 			Inet4Address dstAddress,short dstPort,
 			int sequence,int ack, byte[] data,short ident){
-		Packet p;
+		Packet p=null;
 
 		TcpPacket.Builder builder_tcp=new TcpPacket.Builder();
 		builder_tcp.payloadBuilder(new UnknownPacket.Builder().rawData(data));

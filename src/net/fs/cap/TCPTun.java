@@ -2,7 +2,11 @@
 
 package net.fs.cap;
 
-import net.fs.utils.MLog;
+import java.net.Inet4Address;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
+
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
@@ -12,11 +16,6 @@ import org.pcap4j.packet.Packet;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.TcpPacket.TcpHeader;
 import org.pcap4j.util.MacAddress;
-
-import java.net.Inet4Address;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
 
 
 class TCPTun {
@@ -47,7 +46,7 @@ class TCPTun {
 	private int localSequence;
 	private int localIdent=random.nextInt(Short.MAX_VALUE-100);
 	
-	private final Object syn_send_data=new Object();
+	private Object syn_send_data=new Object();
 		
 	private long lastSendAckTime;
 	
@@ -57,7 +56,7 @@ class TCPTun {
 
 	String key;
 	
-	private final Object syn_ident=new Object();
+	private Object syn_ident=new Object();
 	
 	//客户端发起
 	TCPTun(CapEnv capEnv,
@@ -81,8 +80,8 @@ class TCPTun {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-		MLog.println("发送第一次握手 "+" ident "+localIdent);
-		MLog.println(""+syncPacket);
+		System.out.println("发送第一次握手 "+" ident "+localIdent);
+		System.out.println(""+syncPacket);
 		
 	}
 
@@ -108,8 +107,8 @@ class TCPTun {
 					remoteStartSequence=tcpHeader.getSequenceNumber();
 					remoteSequence=remoteStartSequence+1;
 					remoteSequence_max=remoteSequence;
-					MLog.println("接收第一次握手 "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort+" ident "+ipV4Header.getIdentification());
-					MLog.println(""+packet);
+					System.out.println("接收第一次握手 "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort+" ident "+ipV4Header.getIdentification());
+					System.out.println(""+packet);
 					Packet responePacket=PacketUtils.createSyncAck(
 							capEnv.local_mac,
 							capEnv.gateway_mac,
@@ -123,17 +122,17 @@ class TCPTun {
 						e.printStackTrace();
 					}
 					localSequence=localStartSequence+1;
-					MLog.println("发送第二次握手 "+capEnv.local_mac+"->"+capEnv.gateway_mac+" "+localAddress+"->"+" ident "+0);
+					System.out.println("发送第二次握手 "+capEnv.local_mac+"->"+capEnv.gateway_mac+" "+localAddress+"->"+" ident "+0);
 
-					MLog.println(""+responePacket);
+					System.out.println(""+responePacket);
 				}
 
 				if(!tcpHeader.getSyn()&&tcpHeader.getAck()){
 					if(tcpPacket.getPayload()==null){
 						//第三次握手,客户端确认
 						if(tcpHeader.getAcknowledgmentNumber()==localSequence){
-							MLog.println("接收第三次握手 "+" ident "+ipV4Header.getIdentification());
-							MLog.println(packet+"");
+							System.out.println("接收第三次握手 "+" ident "+ipV4Header.getIdentification());
+							System.out.println(packet+"");
 							Thread t1=new Thread(){
 								public void run(){
 									//startSend(basePacket_server,syc_sequence_client+1);
@@ -143,11 +142,11 @@ class TCPTun {
 							connectReady=true;
 						}
 					}
-					//MLog.println("客户端响应preview\n "+packet);
-					//MLog.println("request "+tcp.ack());
+					//System.out.println("客户端响应preview\n "+packet);
+					//System.out.println("request "+tcp.ack());
 					sendedTable_server.remove(tcpHeader.getAcknowledgmentNumber());
 					boolean selfAck=selfAckTable.contains(ipV4Header.getIdentification());
-					//MLog.println("客户端确认 "+"selfack "+selfAck+" id "+ipV4Header.getIdentification()+" ack_sequence "+tcpHeader.getAcknowledgmentNumberAsLong()+" "+sendedTable_server.size()+"ppppppp "+tcpHeader);
+					//System.out.println("客户端确认 "+"selfack "+selfAck+" id "+ipV4Header.getIdentification()+" ack_sequence "+tcpHeader.getAcknowledgmentNumberAsLong()+" "+sendedTable_server.size()+"ppppppp "+tcpHeader);
 				}
 				
 			}else {
@@ -168,7 +167,7 @@ class TCPTun {
 			}
 		}
 		if(tcpHeader.getRst()){
-			MLog.println("reset packet "+ipV4Header.getIdentification()+" "+tcpHeader.getSequenceNumber()+" "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort+" "+" ident "+ipV4Header.getIdentification());
+			System.out.println("reset packet "+ipV4Header.getIdentification()+" "+tcpHeader.getSequenceNumber()+" "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort+" "+" ident "+ipV4Header.getIdentification());
 		}
 
 	}
@@ -185,21 +184,21 @@ class TCPTun {
 			if(!connectReady){
 				if(tcpHeader.getAck()&&tcpHeader.getSyn()){
 					if(tcpHeader.getAcknowledgmentNumber()==(localStartSequence+1)){
-						MLog.println("接收第二次握手 "+" ident "+ipV4Header.getIdentification());
-						MLog.println(""+packet);
+						System.out.println("接收第二次握手 "+" ident "+ipV4Header.getIdentification());
+						System.out.println(""+packet);
 						remoteStartSequence=tcpHeader.getSequenceNumber();
 						remoteSequence=remoteStartSequence+1;
 						remoteSequence_max=remoteSequence;
 						Packet p3=PacketUtils.createAck(capEnv.local_mac, capEnv.gateway_mac, capEnv.local_ipv4, localPort, remoteAddress, remotePort, remoteSequence , localSequence,getIdent());
 						try {
 							sendHandle.sendPacket(p3);
-							MLog.println("发送第三次握手 "+" ident "+localIdent);
-							MLog.println(""+p3);
+							System.out.println("发送第三次握手 "+" ident "+localIdent);
+							System.out.println(""+p3);
 							connectReady=true;
 							
 							byte[] sim=getSimRequestHead();
 							sendData(sim);
-							MLog.println("发送请求 "+" ident "+localIdent);
+							System.out.println("发送请求 "+" ident "+localIdent);
 						} catch (PcapNativeException | NotOpenException e) {
 							e.printStackTrace();
 						}
@@ -209,13 +208,13 @@ class TCPTun {
 				if(tcpPacket.getPayload()!=null){
 					preDataReady=true;
 					onReceiveDataPacket( tcpPacket, tcpHeader, ipV4Header );
-					MLog.println("接收响应 "+" ident "+ipV4Header.getIdentification());
+					System.out.println("接收响应 "+" ident "+ipV4Header.getIdentification());
 				}
 			}
 
 		}else {
 			if(tcpPacket.getPayload()!=null){
-				//MLog.println("客户端正式接收数据 "+capClientEnv.vDatagramSocket);
+				//System.out.println("客户端正式接收数据 "+capClientEnv.vDatagramSocket);
 				onReceiveDataPacket( tcpPacket, tcpHeader, ipV4Header );
 				TunData td=new TunData();
 				td.tun=this;
@@ -225,7 +224,7 @@ class TCPTun {
 			}
 		}
 		if(tcpHeader.getRst()){
-			MLog.println("reset packet "+ipV4Header.getIdentification()+" "+tcpHeader.getSequenceNumber()+" "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort);
+			System.out.println("reset packet "+ipV4Header.getIdentification()+" "+tcpHeader.getSequenceNumber()+" "+remoteAddress.getHostAddress()+":"+remotePort+"->"+localAddress.getHostAddress()+":"+localPort);
 		}
 
 	}
@@ -281,26 +280,29 @@ class TCPTun {
 	}
 	
 	private static byte[] getSimResponeHead(){
-
-		String simRequest= ("HTTP/1.1 200 OK" + "\r\n") +
-				"Server: Apache/2.2.15 (CentOS)" + "\r\n" +
-				"Accept-Ranges: bytes" + "\r\n" +
-				"Content-Length: " + Math.abs(random.nextInt()) + "\r\n" +
-				"Connection: Keep-Alive" + "\r\n" +
-				"Content-Type: application/octet-stream" + "\r\n" +
-				"\r\n";
+		StringBuilder sb=new StringBuilder();
+		
+		sb.append("HTTP/1.1 200 OK"+"\r\n");
+		sb.append("Server: Apache/2.2.15 (CentOS)"+"\r\n");
+		sb.append("Accept-Ranges: bytes"+"\r\n");
+		sb.append("Content-Length: "+(Math.abs(random.nextInt()))+"\r\n");
+		sb.append("Connection: Keep-Alive"+"\r\n");
+		sb.append("Content-Type: application/octet-stream"+"\r\n");
+		sb.append("\r\n");
+		
+		String simRequest=sb.toString();
 		return simRequest.getBytes();
 	}
 	
 	private static byte[] getSimRequestHead(){
 		StringBuilder sb=new StringBuilder();
 		String domainName=getRandomString(5+random.nextInt(10))+".com";				
-		sb.append("GET /").append(getRandomString(8 + random.nextInt(10))).append(".").append(getRandomString(2 + random.nextInt(5))).append(" HTTP/1.1").append("\r\n");
+		sb.append("GET /"+getRandomString(8+random.nextInt(10))+"."+getRandomString(2+random.nextInt(5))+" HTTP/1.1"+"\r\n");
 		sb.append("Accept: application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, */*"+"\r\n");
 		sb.append("Accept-Language: zh-CN"+"\r\n");
 		sb.append("Accept-Encoding: gzip, deflate"+"\r\n");
 		sb.append("User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0"+"\r\n");
-		sb.append("Host: ").append(domainName).append("\r\n");
+		sb.append("Host: "+domainName+"\r\n");
 		sb.append("Connection: Keep-Alive"+"\r\n");
 		sb.append("\r\n");
 		String simRequest=sb.toString();

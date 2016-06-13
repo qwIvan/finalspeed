@@ -6,7 +6,7 @@ public final class ByteShortConvert {
    
     public static void toByteArray(short i, byte[] b, int offset) {
     	 b[offset] = (byte) (i >> 8);
-    	   b[offset + 1] = (byte) (i);
+    	   b[offset + 1] = (byte) (i >> 0);
     }
 
 

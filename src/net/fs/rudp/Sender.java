@@ -18,7 +18,7 @@ public class Sender {
 	private int sum=0;
 	private ConnectionUDP conn;
 	private HashMap<Integer, DataMessage> sendTable= new HashMap<>();
-	private final Object winOb=new Object();
+	private Object winOb=new Object();
 	private InetAddress dstIp;
 	private int dstPort;
 	private int sequence=0;
@@ -31,7 +31,7 @@ public class Sender {
 	
 	private static int s=0;
 	
-	private final Object syn_send_table=new Object();
+	private Object syn_send_table=new Object();
 
 	Sender(ConnectionUDP conn){
 		this.conn=conn;
@@ -71,40 +71,48 @@ public class Sender {
 	 private void sendNata(byte[] data, int length) throws ConnectException, InterruptedException{
 
 		 boolean closed = false;
-		 if(!streamClosed){
-             DataMessage me=new DataMessage(sequence,data,0,(short) length,conn.connectId,conn.route.localclientId);
-             me.setDstAddress(dstIp);
-             me.setDstPort(dstPort);
-             synchronized (syn_send_table) {
-                 sendTable.put(me.getSequence(),me);
-             }
-
-             synchronized (winOb){
-                 if(!conn.receiver.checkWin()){
-                     winOb.wait();
-                 }
-             }
-
-             boolean twice=false;
-             if(RUDPConfig.twice_tcp){
-                 twice=true;
-             }
-             if(RUDPConfig.double_send_start){
-                 if(me.getSequence()<=5){
-                     twice=true;
-                 }
-             }
-             sendDataMessage(me,false,twice,true);
-             long lastSendTime = System.currentTimeMillis();
-             sendOffset++;
-             s+=me.getData().length;
-             conn.clientControl.resendMange.addTask(conn, sequence);
-             sequence++;//必须放最后
-         }else{
-             throw new ConnectException();
-         }
-
-	 }
+		 if(!closed){
+			if(!streamClosed){
+				DataMessage me=new DataMessage(sequence,data,0,(short) length,conn.connectId,conn.route.localclientId);
+				me.setDstAddress(dstIp);
+				me.setDstPort(dstPort);
+				synchronized (syn_send_table) {
+					sendTable.put(me.getSequence(),me);
+				}
+				
+				synchronized (winOb){
+					if(!conn.receiver.checkWin()){
+						try {
+							winOb.wait();
+						} catch (InterruptedException e) {
+							throw e;
+						}
+					}
+				}
+				
+				boolean twice=false;
+				if(RUDPConfig.twice_tcp){
+					twice=true;
+				}
+				if(RUDPConfig.double_send_start){
+					if(me.getSequence()<=5){
+						twice=true;
+					}
+				}
+				sendDataMessage(me,false,twice,true);
+				long lastSendTime = System.currentTimeMillis();
+				sendOffset++;
+				s+=me.getData().length;
+				conn.clientControl.resendMange.addTask(conn, sequence);
+				sequence++;//必须放最后
+			}else{
+				throw new ConnectException();
+			}
+		}else{
+			throw new ConnectException();
+		}
+	
+	}
 	
 	public void closeStream_Local(){
 		if(!streamClosed){

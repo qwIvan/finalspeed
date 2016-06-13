@@ -47,7 +47,7 @@ public class AckListMessage extends Message{
 		for(int i=0;i<ackList.size();i++){
 			int sequence=(Integer)ackList.get(i);
 			ByteIntConvert.toByteArray(sequence, dpData, 10+4*i+8);  //add: sequence
-			////#MLog.println("发送确认 "+sequence);
+			////#System.out.println("发送确认 "+sequence);
 		}
 
 		int u1=timeId-2;
@@ -96,13 +96,13 @@ public class AckListMessage extends Message{
 		lastRead=ByteIntConvert.toInt(dpData, 4+8);
 		int sum=ByteShortConvert.toShort(dpData, 8+8);
 		ackList= new ArrayList<>();
-		int t;
+		int t=0;
 		for(int i=0;i<sum;i++){
 			t=10+4*i;
 			int sequence=ByteIntConvert.toInt(dpData, t+8);
 			ackList.add(sequence);
 		}
-		////#MLog.println("LLLLLLLLLLLLLL "+dp.getLength()+" "+ackList.size());
+		////#System.out.println("LLLLLLLLLLLLLL "+dp.getLength()+" "+ackList.size());
 		t=10+4*sum-4;
 		r1=ByteIntConvert.toInt(dpData, t+4+8);
 		s1=ByteIntConvert.toInt(dpData, t+8+8);
@@ -113,7 +113,7 @@ public class AckListMessage extends Message{
 		r3=ByteIntConvert.toInt(dpData, t+20+8);
 		s3=ByteIntConvert.toInt(dpData, t+24+8);
 
-		////#MLog.println("aaaaaaaaa"+r3+"kkkkkkk "+s3);
+		////#System.out.println("aaaaaaaaa"+r3+"kkkkkkk "+s3);
 	}
 
 	public int getLastRead(){

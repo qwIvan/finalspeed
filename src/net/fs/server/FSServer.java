@@ -5,7 +5,6 @@
 package net.fs.server;
 
 import net.fs.rudp.Route;
-import net.fs.utils.MLog;
 
 import java.io.*;
 import java.net.BindException;
@@ -24,17 +23,17 @@ class FSServer {
 		} catch (Exception e) {
 			e.printStackTrace();
 			if(e instanceof BindException){
-				MLog.println("Udp port already in use.");
+				System.out.println("Udp port already in use.");
 			}
-			MLog.println("Start failed.");
+			System.out.println("Start failed.");
 			System.exit(0);
 		}
 	}
 
 	private FSServer() throws Exception {
-		MLog.info("");
-		MLog.info("FinalSpeed server starting... ");
-		MLog.info("System Name: " + systemName);
+		System.out.println("");
+		System.out.println("FinalSpeed server starting... ");
+		System.out.println("System Name: " + systemName);
 		final MapTunnelProcessor mp = new MapTunnelProcessor();
 
 		String port_s = readFileData("./cnf/listen_port");
@@ -200,7 +199,7 @@ class FSServer {
 		while (true) {
 			int row = getRow("udptun_fs_server");
 			if (row > 0) {
-				// MLog.println("删除行 "+row);
+				// System.out.println("删除行 "+row);
 				String cmd = "iptables -D INPUT " + row;
 				runCommand(cmd);
 			} else {
@@ -221,7 +220,7 @@ class FSServer {
 		while (true) {
 			int row = getRow("tcptun_fs_server");
 			if (row > 0) {
-				// MLog.println("删除行 "+row);
+				// System.out.println("删除行 "+row);
 				String cmd = "iptables -D INPUT " + row;
 				runCommand(cmd);
 			} else {
@@ -281,7 +280,7 @@ class FSServer {
 										// "+line);
 										row_delect = Integer.parseInt(n);
 									}
-								} catch (Exception ignored) {
+								} catch (Exception e) {
 
 								}
 							}
@@ -303,8 +302,8 @@ class FSServer {
 	}
 
 	private void runCommand(String command) {
-		Thread standReadThread;
-		Thread errorReadThread;
+		Thread standReadThread = null;
+		Thread errorReadThread = null;
 		try {
 			final Process p = Runtime.getRuntime().exec(command, null);
 			standReadThread = new Thread() {
@@ -361,7 +360,7 @@ class FSServer {
 
 	private String readFileData(String path) {
 		String content = null;
-		FileInputStream fis;
+		FileInputStream fis = null;
 		DataInputStream dis = null;
 		try {
 			File file = new File(path);

@@ -2,7 +2,9 @@
 
 package net.fs.rudp;
 
-class TrafficEvent {
+public class TrafficEvent {
+
+	private int traffic;
 
 	static int type_downloadTraffic=10;
 	
@@ -11,12 +13,16 @@ class TrafficEvent {
 	private int type=type_downloadTraffic;
 
 	TrafficEvent(int traffic, int type){
-		int traffic1 = traffic;
+		this.traffic=traffic;
 		this.type=type;
 	}
 
 	public int getType() {
 		return type;
+	}
+
+	public int getTraffic() {
+		return traffic;
 	}
 
 

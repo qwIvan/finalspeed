@@ -8,6 +8,7 @@ import net.fs.rudp.message.DataMessage;
 import net.fs.utils.MessageCheck;
 
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -16,7 +17,7 @@ public class Receiver {
 	private ConnectionUDP conn;
 	private HashMap<Integer, DataMessage> receiveTable= new HashMap<>();
 	int lastRead=-1;
-	private final Object availOb=new Object();
+	private Object availOb=new Object();
 
 	private int lastRead2=-1;
 
@@ -30,19 +31,26 @@ public class Receiver {
 
 	private boolean reveivedClose=false;
 
+	private static int c;
+
+	private long received;
+
 	Receiver(ConnectionUDP conn){
 		this.conn=conn;
-		new UDPInputStream(conn);
+		UDPInputStream uis = new UDPInputStream(conn);
+		Sender sender = conn.sender;
+		InetAddress dstIp = conn.dstIp;
+		int dstPort = conn.dstPort;
 	}
 
 	//接收流数据
-	byte[] receive() throws ConnectException {
-		DataMessage me;
+	public byte[] receive() throws ConnectException {
+		DataMessage me=null;
 		if(conn.isConnected()){
 			me=receiveTable.get(lastRead+1);
 			synchronized (availOb){
 				if(me==null){
-					//MLog.println("等待中 "+conn.connectId+" "+(lastRead+1));
+					//System.out.println("等待中 "+conn.connectId+" "+(lastRead+1));
 
 					try {
 						availOb.wait();
@@ -50,7 +58,7 @@ public class Receiver {
 						e.printStackTrace();
 					}
 					me=receiveTable.get(lastRead+1);
-					//MLog.println("等待完成aaa "+conn.connectId+" "+(lastRead+1));
+					//System.out.println("等待完成aaa "+conn.connectId+" "+(lastRead+1));
 				}
 			}
 
@@ -62,6 +70,7 @@ public class Receiver {
 			checkCloseOffset_Remote();
 			if(me==null){
 				throw new ConnectException();
+			}else {
 			}
 			conn.sender.sendLastReadDelay();
 
@@ -70,6 +79,7 @@ public class Receiver {
 				receiveTable.remove(me.getSequence());
 			}
 
+			received+=me.getData().length;
 			//System.out.println("received "+received/1024/1024+"MB");
 			return me.getData();
 		}else{
@@ -90,6 +100,7 @@ public class Receiver {
 						SendRecord record=conn.clientControl.sendRecordTable_remote.get(timeId);
 						if(record==null){
 							record=new SendRecord();
+							record.setTimeId(timeId);
 							conn.clientControl.sendRecordTable_remote.put(timeId, record);
 						}
 						record.addSended(me.getData().length);
@@ -154,7 +165,7 @@ public class Receiver {
 						CloseMessage_Conn cm2=new CloseMessage_Conn(dp);
 						conn.close_remote();
 					}else{
-						////#MLog.println("未处理数据包 "+sType);
+						////#System.out.println("未处理数据包 "+sType);
 					}
 				}
 
@@ -164,7 +175,7 @@ public class Receiver {
 	}
 
 	public void destroy(){
-		//#MLog.println("destroy destroy destroy");
+		//#System.out.println("destroy destroy destroy");
 		synchronized (availOb) {
 			receiveTable.clear();
 		}
@@ -203,6 +214,7 @@ public class Receiver {
 
 	void closeStream_Local(){
 		if(!streamClose){
+			c++;
 			streamClose=true;
 			synchronized (availOb){
 				availOb.notifyAll();

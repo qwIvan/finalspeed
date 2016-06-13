@@ -32,6 +32,10 @@ class ClientConfig {
 		this.serverPort = serverPort;
 	}
 
+	public void setRemotePort(int remotePort) {
+		int remotePort1 = remotePort;
+	}
+
 	public int getDownloadSpeed() {
 		return downloadSpeed;
 	}

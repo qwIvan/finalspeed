@@ -103,7 +103,10 @@ null,mapRule.dst_port);
 			dis.readFully(data);
 			str=new String(data,"utf-8");
 
-		} finally{
+		} catch (Exception e) {
+			//e.printStackTrace();
+			throw e;
+		}finally{
 			if(fis!=null){
 				try {
 					fis.close();

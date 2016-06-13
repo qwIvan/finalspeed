@@ -2,6 +2,7 @@ package net.fs.client;
 
 import net.fs.rudp.ClientProcessorInterface;
 import net.fs.rudp.Route;
+import net.fs.rudp.TrafficEvent;
 import net.fs.rudp.Trafficlistener;
 
 import java.io.*;
@@ -12,8 +13,6 @@ import java.util.HashSet;
 class MapClient implements Trafficlistener{
 
 	Route route_udp,route_tcp;
-
-	private ClientUII ui;
 
 	String serverAddress="";
 
@@ -27,8 +26,7 @@ class MapClient implements Trafficlistener{
 	
 	private boolean useTcp=true;
 
-	MapClient(ClientUI ui,boolean tcpEnvSuccess) throws Exception {
-		this.ui=ui;
+	MapClient(FSClient ui, boolean tcpEnvSuccess) throws Exception {
 		try {
 			int monPort = 25874;
 			final ServerSocket socket=new ServerSocket(monPort);
@@ -52,19 +50,7 @@ class MapClient implements Trafficlistener{
 
 		new PortMapManager(this);
 
-		Thread clientUISpeedUpdateThread = new Thread() {
-			public void run() {
-				while (true) {
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
-		};
-		clientUISpeedUpdateThread.start();
-		
+
 		Route.addTrafficlistener(this);
 		
 	}
@@ -99,77 +85,14 @@ class MapClient implements Trafficlistener{
 		String ip;
 		try {
 			ip = InetAddress.getByName(serverAddress).getHostAddress();
-			if(systemName.contains("mac os")){
-				if(ui.isOsx_fw_pf ()){
-					String tempPath="./pf.conf";
-					File f=new File(tempPath);
-					File d=f.getParentFile();
-					if(!d.exists()){
-						d.mkdirs();
-					}
-					if(f.exists()){
-						f.delete();
-					}
-					//必须换行结束
-					String content="block drop quick proto tcp from any to "+ip+" port = "+serverPort+"\n";
-					saveFile(content.getBytes(), tempPath);
-					
-					String cmd1="pfctl -d";
-					runCommand(cmd1);
-					
-					String cmd2="pfctl -Rf "+f.getAbsolutePath();
-					runCommand(cmd2);
-					
-					String cmd3="pfctl -e";
-					runCommand(cmd3);
-					
-					//f.delete();
-				}else if(ui.isOsx_fw_ipfw()){
-					String cmd2="sudo ipfw add 5050 deny tcp from any to "+ip+" "+serverAddress+" out";
-					runCommand(cmd2);
-				}				
-			}else if(systemName.contains("linux")){
-				String cmd2="iptables -t filter -A OUTPUT -d "+ip+" -p tcp --dport "+serverPort+" -j DROP -m comment --comment tcptun_fs ";
-				runCommand(cmd2);
-			}else if (systemName.contains("windows")) {
-				try {
-					if(systemName.contains("xp")||systemName.contains("2003")){
-						String cmd_add1="ipseccmd -w REG -p \"tcptun_fs\" -r \"Block TCP/"+serverPort+"\" -f 0/255.255.255.255="+ip+"/255.255.255.255:"+serverPort+":tcp -n BLOCK -x ";
-						final Process p2 = Runtime.getRuntime().exec(cmd_add1,null);
-						p2.waitFor();
-					}else {
-						String cmd_add1="netsh advfirewall firewall add rule name=tcptun_fs protocol=TCP dir=out remoteport="+serverPort+" remoteip="+ip+" action=block ";
-						final Process p2 = Runtime.getRuntime().exec(cmd_add1,null);
-						p2.waitFor();
-						String cmd_add2="netsh advfirewall firewall add rule name=tcptun_fs protocol=TCP dir=in remoteport="+serverPort+" remoteip="+ip+" action=block ";
-						Process p3 = Runtime.getRuntime().exec(cmd_add2,null);
-						p3.waitFor();
-					}
-				} catch (Exception e1) {
-					e1.printStackTrace();
-				}
-			}
+			String cmd2="iptables -t filter -A OUTPUT -d "+ip+" -p tcp --dport "+serverPort+" -j DROP -m comment --comment tcptun_fs ";
+			runCommand(cmd2);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 	}
-	
-	private void saveFile(byte[] data, String path) throws Exception{
-		FileOutputStream fos=null;
-		try {
-			fos=new FileOutputStream(path);
-			fos.write(data);
-		} finally {
-			if(fos!=null){
-				try {
-					fos.close();
-				} catch (Exception ignored) {
-				}
-			}
-		}
-	}
-	
+
 	private void cleanRule(){
 		if(systemName.contains("mac os")){
 			cleanTcpTunRule_osx();
@@ -203,7 +126,7 @@ class MapClient implements Trafficlistener{
 		while(true){
 			int row=getRow_linux();
 			if(row>0){
-				//MLog.println("删除行 "+row);
+				//System.out.println("删除行 "+row);
 				String cmd="iptables -D OUTPUT "+row;
 				runCommand(cmd);
 			}else {
@@ -263,7 +186,6 @@ class MapClient implements Trafficlistener{
 										row_delect=Integer.parseInt(n);
 									}
 								} catch (Exception ignored) {
-
 								}
 							}
 						}
@@ -296,19 +218,19 @@ class MapClient implements Trafficlistener{
 		}
 	}
 
-	public void trafficDownload() {
-		////#MLog.println("下载 "+event.getTraffic());
+	public void trafficDownload(TrafficEvent event) {
+		////#System.out.println("下载 "+event.getTraffic());
 		System.currentTimeMillis();
 	}
 
-	public void trafficUpload() {
-		////#MLog.println("上传 "+event.getTraffic());
+	public void trafficUpload(TrafficEvent event) {
+		////#System.out.println("上传 "+event.getTraffic());
 		System.currentTimeMillis();
 	}
 
 	private static void runCommand(String command){
-		Thread standReadThread;
-		Thread errorReadThread;
+		Thread standReadThread=null;
+		Thread errorReadThread=null;
 		try {
 			final Process p = Runtime.getRuntime().exec(command,null);
 			standReadThread=new Thread(){
@@ -365,10 +287,6 @@ class MapClient implements Trafficlistener{
 
 	public boolean isUseTcp() {
 		return useTcp;
-	}
-
-	public void setUi(ClientUII ui) {
-		this.ui = ui;
 	}
 
 }

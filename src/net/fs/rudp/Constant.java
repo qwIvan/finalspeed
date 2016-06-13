@@ -6,5 +6,7 @@ public class Constant {
 
 	
 	public static int code_success=1;
+	
+	public static int code_failed=0;
 
 }

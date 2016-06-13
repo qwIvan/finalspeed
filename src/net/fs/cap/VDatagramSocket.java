@@ -21,7 +21,7 @@ public class VDatagramSocket extends DatagramSocket{
 	
 	private int localPort;
 	
-	private final Object syn_tun=new Object();
+	private Object syn_tun=new Object();
 	
 	private boolean tunConnecting=false;
 
@@ -38,7 +38,7 @@ public class VDatagramSocket extends DatagramSocket{
 	 }
 
 	public void send(DatagramPacket p) throws IOException  {
-		TCPTun tun;
+		TCPTun tun=null;
 		if(client){
 			tun=capEnv.tcpManager.getDefaultTcpTun();
 			if(tun!=null){
@@ -91,7 +91,7 @@ public class VDatagramSocket extends DatagramSocket{
 	
 	
 	public synchronized void receive(DatagramPacket p) throws IOException {
-		TunData td;
+		TunData td=null;
 		try {
 			td=packetList.take();
 			p.setData(td.data);

@@ -45,4 +45,8 @@ public class SendRecord {
 		}
 	}
 
+	public void setTimeId(int timeId) {
+		int timeId1 = timeId;
+	}
+
 }

@@ -2,8 +2,6 @@
 
 package net.fs.rudp;
 
-import net.fs.utils.MLog;
-
 import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,7 +14,7 @@ class ClientManager {
 
 	private Route route;
 
-	private final Object syn_clientTable=new Object();
+	private Object syn_clientTable=new Object();
 	
 	ClientManager(Route route){
 		this.route=route;
@@ -39,7 +37,7 @@ class ClientManager {
 	private void scanClientControl(){
 		Iterator<Integer> it=getClientTableIterator();
 		long current=System.currentTimeMillis();
-		//MLog.println("ffffffffffff "+clientTable.size());
+		//System.out.println("ffffffffffff "+clientTable.size());
 		while(it.hasNext()){
 			ClientControl cc=clientTable.get(it.next());
 			if(cc!=null){
@@ -51,7 +49,7 @@ class ClientManager {
 					}
 				}else {
 					//超时关闭client
-					MLog.println("超时关闭client "+cc.dstIp.getHostAddress()+":"+cc.dstPort+" "+new Date());
+					System.out.println("超时关闭client "+cc.dstIp.getHostAddress()+":"+cc.dstPort+" "+new Date());
 //					System.exit(0);
 					synchronized (syn_clientTable) {
 						cc.close();
@@ -66,7 +64,7 @@ class ClientManager {
 	}
 	
 	private Iterator<Integer> getClientTableIterator(){
-		Iterator<Integer> it;
+		Iterator<Integer> it=null;
 		synchronized (syn_clientTable) {
 			it=new CopiedIterator(clientTable.keySet().iterator());
 		}

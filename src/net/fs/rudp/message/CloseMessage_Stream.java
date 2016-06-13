@@ -29,7 +29,7 @@ public class CloseMessage_Stream extends Message{
 		ByteIntConvert.toByteArray(clientId, dpData, 8); //add: sequence
 		ByteIntConvert.toByteArray(closeOffset, dpData, 12); //add: sequence
 		dp=new DatagramPacket(dpData,dpData.length);
-		////#MLog.println("vCloseMessageaaa"+clientId+"v");
+		////#System.out.println("vCloseMessageaaa"+clientId+"v");
 	}
 	
 	public CloseMessage_Stream(DatagramPacket dp){
@@ -41,7 +41,7 @@ public class CloseMessage_Stream extends Message{
 		connectId=ByteIntConvert.toInt(dpData, 4);
 		clientId=ByteIntConvert.toInt(dpData, 8);
 		closeOffset=ByteIntConvert.toInt(dpData, 12);
-		////#MLog.println("vCloseMessagebbb"+clientId+"v");
+		////#System.out.println("vCloseMessagebbb"+clientId+"v");
 	}
 	
 	public int getCloseOffset(){

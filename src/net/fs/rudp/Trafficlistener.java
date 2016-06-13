@@ -4,9 +4,9 @@ package net.fs.rudp;
 
 public interface Trafficlistener {
 	
-	void trafficDownload();
+	void trafficDownload(TrafficEvent event);
 	
 
-	void trafficUpload();
+	void trafficUpload(TrafficEvent event);
 	
 }
