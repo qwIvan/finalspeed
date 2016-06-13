@@ -2,20 +2,13 @@
 
 package net.fs.rudp;
 
-import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 
 
 public class ResendManage implements Runnable{
-	
-	boolean haveTask=false;
-	Object signalOb=new Object();
-	Thread mainThread;
-	long vTime=0;
-	long lastReSendTime;
-	
-	LinkedBlockingQueue<ResendItem> taskList=new LinkedBlockingQueue<ResendItem>();
+
+	private LinkedBlockingQueue<ResendItem> taskList= new LinkedBlockingQueue<>();
 	
 	public ResendManage(){
 		Route.es.execute(this);
@@ -27,13 +20,12 @@ public class ResendManage implements Runnable{
 		taskList.add(ri);
 	}
 	
-	long getNewResendTime(ConnectionUDP conn){
+	private long getNewResendTime(ConnectionUDP conn){
 		int delayAdd=conn.clientControl.pingDelay+(int) ((float)conn.clientControl.pingDelay*RUDPConfig.reSendDelay);
 		if(delayAdd<RUDPConfig.reSendDelay_min){
 			delayAdd=RUDPConfig.reSendDelay_min;
 		}
-		long time=(long) (System.currentTimeMillis()+delayAdd);
-		return time;
+		return System.currentTimeMillis()+delayAdd;
 	}
 	
 	public void run() {
@@ -59,7 +51,7 @@ public class ResendManage implements Runnable{
 //								}
 //								
 //							});
-							ri.conn.sender.reSend(ri.sequence,ri.getCount());
+							ri.conn.sender.reSend(ri.sequence);
 						}
 					
 					}

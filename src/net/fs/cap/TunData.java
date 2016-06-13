@@ -3,7 +3,7 @@
 package net.fs.cap;
 
 
-public class TunData {
+class TunData {
 	
 	TCPTun tun;
 	

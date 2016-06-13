@@ -7,9 +7,7 @@ public class RUDPConfig {
 	public static short protocal_ver=0;
 
 	public static int packageSize=1000;
-	
-	public static boolean twice_udp=false;
-	
+
 	public static boolean twice_tcp=false;
 		
 	public static int maxWin = 5*1024;

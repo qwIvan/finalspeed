@@ -3,14 +3,12 @@
 package net.fs.rudp;
 
 import java.util.HashMap;
-import java.util.Iterator;
 
 public class AckListManage implements Runnable{
-	Thread mainThread;
-	HashMap<Integer, AckListTask> taskTable;
+	private HashMap<Integer, AckListTask> taskTable;
 	public AckListManage(){
-		taskTable=new HashMap<Integer, AckListTask>();
-		mainThread=new Thread(this);
+		taskTable= new HashMap<>();
+		Thread mainThread = new Thread(this);
 		mainThread.start();
 	}
 	
@@ -33,15 +31,13 @@ public class AckListManage implements Runnable{
 	public void run(){
 		while(true){
 			synchronized (this){
-				Iterator<Integer> it=taskTable.keySet().iterator();
-				while(it.hasNext()){
-					int id=it.next();
-					AckListTask at=taskTable.get(id);
+				for (Integer id : taskTable.keySet()) {
+					AckListTask at = taskTable.get(id);
 					at.run();
 				}
 				taskTable.clear();
 				taskTable=null;
-				taskTable=new HashMap<Integer, AckListTask>();
+				taskTable= new HashMap<>();
 			}
 			
 			try {

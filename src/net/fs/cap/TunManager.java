@@ -2,40 +2,33 @@
 
 package net.fs.cap;
 
-import java.util.HashMap;
-import java.util.Iterator;
-
 import net.fs.rudp.CopiedIterator;
 import net.fs.utils.MLog;
 
-public class TunManager {
+import java.util.HashMap;
+import java.util.Iterator;
+
+class TunManager {
 	
-	HashMap<String, TCPTun> connTable=new HashMap<String, TCPTun>();
+	private HashMap<String, TCPTun> connTable= new HashMap<>();
+
+
+	private TCPTun defaultTcpTun;
+
+	private final Object syn_scan=new Object();
 	
-	static TunManager tunManager;
-	
-	{
-		tunManager=this;
-	}
-	
-	TCPTun defaultTcpTun;
-	
-	Thread scanThread;
-	
-	Object syn_scan=new Object();
-	
-	CapEnv capEnv;
+	private CapEnv capEnv;
 	
 	{
-		scanThread=new Thread(){
-			public void run(){
-				while(true){
+		Thread scanThread = new Thread() {
+			public void run() {
+				while (true) {
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					 scan();
+					scan();
 				}
 			}
 		};
@@ -46,7 +39,7 @@ public class TunManager {
 		this.capEnv=capEnv;
 	}
 	
-	void scan(){
+	private void scan(){
 		Iterator<String> it=getConnTableIterator();
 		while(it.hasNext()){
 			String key=it.next();
@@ -72,27 +65,23 @@ public class TunManager {
 		}
 	}
 	
-	public void removeTun(TCPTun tun){
+	void removeTun(TCPTun tun){
 		connTable.remove(tun.key);
 	}
 	
-	Iterator<String> getConnTableIterator(){
-		Iterator<String> it=null;
+	private Iterator<String> getConnTableIterator(){
+		Iterator<String> it;
 		synchronized (syn_scan) {
 			it=new CopiedIterator(connTable.keySet().iterator());
 		}
 		return it;
 	}
-	
-	public static TunManager get(){
-		return tunManager;
-	}
-	
-	public TCPTun getTcpConnection_Client(String remoteAddress,short remotePort,short localPort){
+
+	TCPTun getTcpConnection_Client(String remoteAddress, short remotePort, short localPort){
 		return connTable.get(remoteAddress+":"+remotePort+":"+localPort);
 	}
 	
-	public void addConnection_Client(TCPTun conn) {
+	void addConnection_Client(TCPTun conn) {
 		synchronized (syn_scan) {
 			String key=conn.remoteAddress.getHostAddress()+":"+conn.remotePort+":"+conn.localPort;
 			//MLog.println("addConnection "+key);
@@ -101,11 +90,11 @@ public class TunManager {
 		}
 	}
 	
-	public TCPTun getTcpConnection_Server(String remoteAddress,short remotePort){
+	TCPTun getTcpConnection_Server(String remoteAddress, short remotePort){
 		return connTable.get(remoteAddress+":"+remotePort);
 	}
 	
-	public void addConnection_Server(TCPTun conn) {
+	void addConnection_Server(TCPTun conn) {
 		synchronized (syn_scan) {
 			String key=conn.remoteAddress.getHostAddress()+":"+conn.remotePort;
 			//MLog.println("addConnection "+key);
@@ -114,11 +103,11 @@ public class TunManager {
 		}
 	}
 
-	public TCPTun getDefaultTcpTun() {
+	TCPTun getDefaultTcpTun() {
 		return defaultTcpTun;
 	}
 
-	public void setDefaultTcpTun(TCPTun defaultTcpTun) {
+	void setDefaultTcpTun(TCPTun defaultTcpTun) {
 		this.defaultTcpTun = defaultTcpTun;
 	}
 

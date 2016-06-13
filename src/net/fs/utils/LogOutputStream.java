@@ -6,9 +6,9 @@ import java.util.HashSet;
 
 public class LogOutputStream extends PrintStream{
 	
-	HashSet<LogListener> listeners=new HashSet<LogListener>();
+	private HashSet<LogListener> listeners= new HashSet<>();
 	
-	StringBuffer buffer=new StringBuffer();
+	private StringBuffer buffer=new StringBuffer();
 	
 	public LogOutputStream(OutputStream out) {
 		super(out);
@@ -25,25 +25,9 @@ public class LogOutputStream extends PrintStream{
 			buffer.append(text);
 		}
 		for(LogListener listener:listeners){
-			listener.onAppendContent(this,text);
+			listener.onAppendContent(text);
 		}
 	}
-	
-	public void addListener(LogListener listener){
-		listeners.add(listener);
-	}
-	
-	public void remvoeListener(LogListener listener){
-		listeners.remove(listener);
-	}
 
-	public StringBuffer getBuffer() {
-		return buffer;
-	}
 
-	public void setBuffer(StringBuffer buffer) {
-		this.buffer = buffer;
-	}
-	
-	
 }

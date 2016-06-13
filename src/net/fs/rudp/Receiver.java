@@ -1,65 +1,43 @@
 // Copyright (c) 2015 D1SM.net
 
 package net.fs.rudp;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import net.fs.rudp.message.AckListMessage;
 import net.fs.rudp.message.CloseMessage_Conn;
 import net.fs.rudp.message.CloseMessage_Stream;
 import net.fs.rudp.message.DataMessage;
 import net.fs.utils.MessageCheck;
 
+import java.net.DatagramPacket;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 
 public class Receiver {
-	ConnectionUDP conn;
-	Sender sender;
-	public InetAddress dstIp;
-	public int dstPort;
-	HashMap<Integer, DataMessage> receiveTable=new HashMap<Integer, DataMessage>();
+	private ConnectionUDP conn;
+	private HashMap<Integer, DataMessage> receiveTable= new HashMap<>();
 	int lastRead=-1;
-	int lastReceive=-1;
-	Object availOb=new Object();
+	private final Object availOb=new Object();
 
-	boolean isReady=false;
-	Object readyOb=new Object();
-	byte[] b4=new byte[4];
-	int lastRead1=0;
-	int maxWinR=10;
-	int lastRead2=-1;
-	UDPInputStream uis;
+	private int lastRead2=-1;
 
-	float availWin=RUDPConfig.maxWin;
+	private float availWin=RUDPConfig.maxWin;
 
-	int currentRemoteTimeId;
+	private int currentRemoteTimeId;
 
-	int closeOffset;
+	private int closeOffset;
 
-	boolean streamClose=false;
+	private boolean streamClose=false;
 
-	boolean reveivedClose=false;
-
-	static int m=0,x,x2,c;
-
-	boolean b=false,b2;
-
-	public int nw;
-	
-	long received;
+	private boolean reveivedClose=false;
 
 	Receiver(ConnectionUDP conn){
 		this.conn=conn;
-		uis=new UDPInputStream(conn);
-		this.sender=conn.sender;
-		this.dstIp=conn.dstIp;
-		this.dstPort=conn.dstPort;
+		new UDPInputStream(conn);
 	}
 
 	//接收流数据
-	public byte[] receive() throws ConnectException {
-		DataMessage me=null;
+	byte[] receive() throws ConnectException {
+		DataMessage me;
 		if(conn.isConnected()){
 			me=receiveTable.get(lastRead+1);
 			synchronized (availOb){
@@ -77,14 +55,13 @@ public class Receiver {
 			}
 
 		}else{
-			throw new ConnectException("连接未建立");
+			throw new ConnectException();
 		}
 
 		if(!streamClose){
 			checkCloseOffset_Remote();
 			if(me==null){
-				throw new ConnectException("连接已断开ccccccc");
-			}else {
+				throw new ConnectException();
 			}
 			conn.sender.sendLastReadDelay();
 
@@ -93,11 +70,10 @@ public class Receiver {
 				receiveTable.remove(me.getSequence());
 			}
 
-			received+=me.getData().length;
 			//System.out.println("received "+received/1024/1024+"MB");
 			return me.getData();
 		}else{
-			throw new ConnectException("连接已断开");
+			throw new ConnectException();
 		}
 	}
 
@@ -108,14 +84,12 @@ public class Receiver {
 				int ver=MessageCheck.checkVer(dp);
 				int sType=MessageCheck.checkSType(dp);
 				if(ver==RUDPConfig.protocal_ver){
-					conn.live();
 					if(sType==net.fs.rudp.message.MessageType.sType_DataMessage){
 						me=new DataMessage(dp);
 						int timeId=me.getTimeId();
 						SendRecord record=conn.clientControl.sendRecordTable_remote.get(timeId);
 						if(record==null){
 							record=new SendRecord();
-							record.setTimeId(timeId);
 							conn.clientControl.sendRecordTable_remote.put(timeId, record);
 						}
 						record.addSended(me.getData().length);
@@ -143,8 +117,8 @@ public class Receiver {
 						}
 						ArrayList ackList=alm.getAckList();
 
-						for(int i=0;i<ackList.size();i++){
-							int sequence=(Integer) ackList.get(i);
+						for (Object anAckList : ackList) {
+							int sequence = (Integer) anAckList;
 							conn.sender.removeSended_Ack(sequence);
 						}
 						SendRecord rc1=conn.clientControl.getSendRecord(alm.getR1());
@@ -197,23 +171,23 @@ public class Receiver {
 	}
 
 	boolean checkWin(){
-		nw=conn.sender.sendOffset-lastRead2;
+		int nw = conn.sender.sendOffset - lastRead2;
 		boolean b=false;
-		if(nw<availWin){
+		if(nw <availWin){
 			b= true;
 		}else {
 		}
 		return b;
 	}
 
-	void closeStream_Remote(int closeOffset){
+	private void closeStream_Remote(int closeOffset){
 		this.closeOffset=closeOffset;
 		if(!streamClose){
 			checkCloseOffset_Remote();
 		}
 	}
 
-	void checkCloseOffset_Remote(){
+	private void checkCloseOffset_Remote(){
 		if(!streamClose){
 			if(reveivedClose){
 				if(lastRead>=closeOffset-1){
@@ -229,7 +203,6 @@ public class Receiver {
 
 	void closeStream_Local(){
 		if(!streamClose){
-			c++;
 			streamClose=true;
 			synchronized (availOb){
 				availOb.notifyAll();
@@ -242,18 +215,5 @@ public class Receiver {
 		return currentRemoteTimeId;
 	}
 
-	public void setCurrentTimeId(int currentTimeId) {
-		this.currentRemoteTimeId = currentTimeId;
-	}
-
-
-	public int getCloseOffset() {
-		return closeOffset;
-	}
-
-
-	public void setCloseOffset(int closeOffset) {
-		this.closeOffset = closeOffset;
-	}
 
 }

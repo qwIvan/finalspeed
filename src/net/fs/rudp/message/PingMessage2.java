@@ -11,11 +11,11 @@ import net.fs.utils.ByteShortConvert;
 
 public class PingMessage2 extends Message{
 	
-	public short sType=net.fs.rudp.message.MessageType.sType_PingMessage2;
+	private short sType=net.fs.rudp.message.MessageType.sType_PingMessage2;
 	
-	byte[] dpData=new byte[16];
+	private byte[] dpData=new byte[16];
 	
-	int pingId;
+	private int pingId;
 	
 	public PingMessage2(int connectId,int clientId,int pingId){
 		ByteShortConvert.toByteArray(ver, dpData, 0);  //add: ver
@@ -38,10 +38,6 @@ public class PingMessage2 extends Message{
 
 	public int getPingId() {
 		return pingId;
-	}
-
-	public void setPingId(int pingId) {
-		this.pingId = pingId;
 	}
 
 }

@@ -5,21 +5,18 @@ package net.fs.rudp;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import net.fs.rudp.message.AckListMessage;
 
 
-
-public class AckListTask {
-	ConnectionUDP conn;
-	AckListMessage alm;
-	int lastRead=0;
-	ArrayList<Integer> ackList;
+class AckListTask {
+	private ConnectionUDP conn;
+	private ArrayList<Integer> ackList;
 	@SuppressWarnings("unchecked")
-	HashSet set;
+	private
+	HashSet<Integer> set;
 	AckListTask(ConnectionUDP conn){
 		this.conn=conn;
-		ackList=new ArrayList();
-		set=new HashSet();
+		ackList=new ArrayList<>();
+		set=new HashSet<>();
 	}
 	
 	synchronized void addAck(int sequence){
@@ -63,8 +60,8 @@ public class AckListTask {
 		}
 	}
 	
-	ArrayList<Integer> copy(int offset,int length,ArrayList<Integer> ackList){
-		ArrayList<Integer> nl= new ArrayList<Integer>();
+	private ArrayList<Integer> copy(int offset, int length, ArrayList<Integer> ackList){
+		ArrayList<Integer> nl= new ArrayList<>();
 		for(int i=0;i<length;i++){
 			nl.add(ackList.get(offset+i));
 		}

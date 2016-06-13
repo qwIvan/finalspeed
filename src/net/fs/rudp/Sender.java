@@ -2,63 +2,41 @@
 
 package net.fs.rudp;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-
 import net.fs.rudp.message.AckListMessage;
 import net.fs.rudp.message.CloseMessage_Conn;
 import net.fs.rudp.message.CloseMessage_Stream;
 import net.fs.rudp.message.DataMessage;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class Sender {
-	DataMessage me2=null;
-	int interval;
-	
-	public int sum=0;
-	int sleepTime=100;
-	ConnectionUDP conn;
-	Receiver receiver=null;
-	boolean bussy=false;
-	Object bussyOb=new Object();
-	boolean isHave=false;
-	public HashMap<Integer, DataMessage> sendTable=new HashMap<Integer, DataMessage>();
-	boolean isReady=false;
-	Object readyOb=new Object();
-	Object winOb=new Object();
-	public InetAddress dstIp;
-	public int dstPort;
-	public int sequence=0;
+
+	private int sum=0;
+	private ConnectionUDP conn;
+	private HashMap<Integer, DataMessage> sendTable= new HashMap<>();
+	private final Object winOb=new Object();
+	private InetAddress dstIp;
+	private int dstPort;
+	private int sequence=0;
 	int sendOffset=-1;
-	boolean pause=false;
-	int unAckMin=0;
-	int unAckMax=-1;
-	int sendSum=0;
-	int reSendSum=0;
-	UDPOutputStream uos;
-	int sw=0;
+	private int unAckMax=-1;
+	private int sendSum=0;
+	private int sw=0;
+
+	private boolean streamClosed=false;
 	
-	static Random ran=new Random();
+	private static int s=0;
 	
-	long lastSendTime=-1;
-	
-	boolean closed=false;
-	
-	boolean streamClosed=false;
-	
-	static int s=0;
-	
-	Object syn_send_table=new Object();
-	
-	HashMap<Integer, DataMessage> unAckTable=new HashMap<Integer, DataMessage>();
-		
+	private final Object syn_send_table=new Object();
+
 	Sender(ConnectionUDP conn){
 		this.conn=conn;
-		uos=new UDPOutputStream (conn);
-		receiver=conn.receiver;
+		UDPOutputStream uos = new UDPOutputStream(conn);
+		Receiver receiver = conn.receiver;
 		this.dstIp=conn.dstIp;
 		this.dstPort=conn.dstPort;
 	}
@@ -75,13 +53,13 @@ public class Sender {
 		int len=packetLength;
 		if(length<=len){
 			sw++;
-			sendNata(data,0,length);
+			sendNata(data, length);
 			sw--;
 		}else{
 			for(int i=0;i<sum;i++){
 				byte[] b=new byte[len];
 				System.arraycopy(data, offset, b, 0, len);
-				sendNata(b,0,b.length);
+				sendNata(b, b.length);
 				offset+=packetLength;
 				if(offset+len>length){
 					len=length-(sum-1)*packetLength;
@@ -90,50 +68,43 @@ public class Sender {
 		}
 	}
 	
-	 void sendNata(byte[] data,int offset,int length) throws ConnectException, InterruptedException{
-		
-		if(!closed){
-			if(!streamClosed){
-				DataMessage me=new DataMessage(sequence,data,0,(short) length,conn.connectId,conn.route.localclientId);
-				me.setDstAddress(dstIp);
-				me.setDstPort(dstPort);
-				synchronized (syn_send_table) {
-					sendTable.put(me.getSequence(),me);
-				}
-				
-				synchronized (winOb){
-					if(!conn.receiver.checkWin()){
-						try {
-							winOb.wait();
-						} catch (InterruptedException e) {
-							throw e;
-						}
-					}
-				}
-				
-				boolean twice=false;
-				if(RUDPConfig.twice_tcp){
-					twice=true;
-				}
-				if(RUDPConfig.double_send_start){
-					if(me.getSequence()<=5){
-						twice=true;
-					}
-				}
-				sendDataMessage(me,false,twice,true);
-				lastSendTime=System.currentTimeMillis();
-				sendOffset++;
-				s+=me.getData().length;
-				conn.clientControl.resendMange.addTask(conn, sequence);
-				sequence++;//必须放最后
-			}else{
-				throw new ConnectException("RDP连接已断开sendData");
-			}
-		}else{
-			throw new ConnectException("RDP连接已经关闭");
-		}
-	
-	}
+	 private void sendNata(byte[] data, int length) throws ConnectException, InterruptedException{
+
+		 boolean closed = false;
+		 if(!streamClosed){
+             DataMessage me=new DataMessage(sequence,data,0,(short) length,conn.connectId,conn.route.localclientId);
+             me.setDstAddress(dstIp);
+             me.setDstPort(dstPort);
+             synchronized (syn_send_table) {
+                 sendTable.put(me.getSequence(),me);
+             }
+
+             synchronized (winOb){
+                 if(!conn.receiver.checkWin()){
+                     winOb.wait();
+                 }
+             }
+
+             boolean twice=false;
+             if(RUDPConfig.twice_tcp){
+                 twice=true;
+             }
+             if(RUDPConfig.double_send_start){
+                 if(me.getSequence()<=5){
+                     twice=true;
+                 }
+             }
+             sendDataMessage(me,false,twice,true);
+             long lastSendTime = System.currentTimeMillis();
+             sendOffset++;
+             s+=me.getData().length;
+             conn.clientControl.resendMange.addTask(conn, sequence);
+             sequence++;//必须放最后
+         }else{
+             throw new ConnectException();
+         }
+
+	 }
 	
 	public void closeStream_Local(){
 		if(!streamClosed){
@@ -151,12 +122,11 @@ public class Sender {
 		}
 	}
 	
-	void sendDataMessage(DataMessage me,boolean resend,boolean twice,boolean block){
+	private void sendDataMessage(DataMessage me, boolean resend, boolean twice, boolean block){
 		synchronized (conn.clientControl.getSynlock()) {
 			long startTime=System.nanoTime();
 			long t1=System.currentTimeMillis();
-			conn.clientControl.onSendDataPacket(conn);
-			
+
 			int timeId=conn.clientControl.getCurrentTimeId();
 
 			me.create(timeId);
@@ -165,7 +135,6 @@ public class Sender {
 			if(!resend){
 				//第一次发，修改当前时间记录
 				me.setFirstSendTimeId(timeId);
-				me.setFirstSendTime(System.currentTimeMillis());
 				record_current.addSended_First(me.getData().length);
 				record_current.addSended(me.getData().length);
 			}else {
@@ -189,7 +158,7 @@ public class Sender {
 				if(block){
 					conn.clientControl.sendSleep(startTime, me.getData().length);
 				}
-				TrafficEvent event=new TrafficEvent("",ran.nextLong(),me.getData().length,TrafficEvent.type_uploadTraffic);
+				TrafficEvent event=new TrafficEvent(me.getData().length,TrafficEvent.type_uploadTraffic);
 				Route.fireEvent(event);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -210,7 +179,7 @@ public class Sender {
 		return sendTable.get(sequence);
 	}
 
-	public void reSend(int sequence,int count){
+	public void reSend(int sequence){
 		if(sendTable.containsKey(sequence)){
 			DataMessage dm=sendTable.get(sequence);
 			if(dm!=null){
@@ -237,15 +206,8 @@ public class Sender {
 			winOb.notifyAll();
 		}
 	}
-	
-	void close(){
-		synchronized (winOb){
-			closed=true;
-			winOb.notifyAll();
-		}
-	}
-	
-	void sendCloseMessage_Stream(){
+
+	private void sendCloseMessage_Stream(){
 		CloseMessage_Stream cm=new CloseMessage_Stream(conn.connectId,conn.route.localclientId,sequence);
 		cm.setDstAddress(dstIp);
 		cm.setDstPort(dstPort);
@@ -279,7 +241,7 @@ public class Sender {
 	
 	void sendALMessage(ArrayList ackList){
 		int currentTimeId=conn.receiver.getCurrentTimeId();
-		AckListMessage alm=new AckListMessage(conn.connetionId,ackList,conn.receiver.lastRead,conn
+		AckListMessage alm=new AckListMessage(ackList,conn.receiver.lastRead,conn
 				.clientControl.sendRecordTable_remote,currentTimeId,
 				conn.connectId,conn.route.localclientId);
 		alm.setDstAddress(dstIp);
@@ -291,11 +253,11 @@ public class Sender {
 		}
 	}
 	
-	void send(DatagramPacket dp) throws IOException {
-		sendPacket(dp,conn.connectId);
+	private void send(DatagramPacket dp) throws IOException {
+		sendPacket(dp);
 	}
 	
-	public void sendPacket(DatagramPacket dp,Integer di) throws IOException{
+	private void sendPacket(DatagramPacket dp) throws IOException{
 		conn.clientControl.sendPacket(dp);
 	}
 	

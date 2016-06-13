@@ -2,103 +2,42 @@
 
 package net.fs.client;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Properties;
-import java.util.StringTokenizer;
-
-import org.pcap4j.core.Pcaps;
-
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import net.fs.rudp.Route;
 import net.fs.utils.LogOutputStream;
 import net.fs.utils.MLog;
-import net.fs.utils.Tools;
+import org.pcap4j.core.Pcaps;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import java.io.*;
 
-public class ClientUI implements ClientUII {
-    MapClient mapClient;
+class ClientUI implements ClientUII {
+    private MapClient mapClient;
 
-    ClientConfig config = null;
-
-    String configFilePath = "client_config.json";
-
-    String logoImg = "img/offline.png";
-
-    String offlineImg = "img/offline.png";
-
-    String name = "FinalSpeed";
-
-    int serverVersion = -1;
-
-    int localVersion = 5;
-
-    boolean checkingUpdate = false;
-
-    String domain = "";
-
-    String homeUrl;
+    private ClientConfig config = null;
 
     public static ClientUI ui;
 
-    boolean ky = true;
-
-    String errorMsg = "保存失败请检查输入信息!";
-
-//    MapRuleListModel model;
+    //    MapRuleListModel model;
 
 //    public MapRuleListTable tcpMapRuleListTable;
 
-    boolean capSuccess = false;
-    Exception capException = null;
-    boolean b1 = false;
+    private boolean b1 = false;
 
-    boolean success_firewall_windows = true;
+    private boolean success_firewall_windows = true;
 
-    boolean success_firewall_osx = true;
+    private boolean success_firewall_osx = true;
 
-    String systemName = null;
+    private String systemName = null;
 
-    public boolean osx_fw_pf = false;
+    private boolean osx_fw_pf = false;
 
-    public boolean osx_fw_ipfw = false;
+    private boolean osx_fw_ipfw = false;
 
-    public boolean isVisible = true;
 
-    String updateUrl;
-    
-    boolean min=false;
-    
-    LogOutputStream los;
-    
-    boolean tcpEnable=true;
-    
-    {
-        domain = "ip4a.com";
-        homeUrl = "http://www.ip4a.com/?client_fs";
-        updateUrl = "http://fs.d1sm.net/finalspeed/update.properties";
-    }
-
-    ClientUI(final boolean isVisible,boolean min) {
-    	this.min=min;
-        setVisible(isVisible);
-        
+    ClientUI(final boolean isVisible) {
         if(isVisible){
-        	 los=new LogOutputStream(System.out);
+            LogOutputStream los = new LogOutputStream(System.out);
              System.setOut(los);
              System.setErr(los);
         }
@@ -110,17 +49,6 @@ public class ClientUI implements ClientUII {
         checkQuanxian();
         loadConfig();
 
-        updateUISpeed(0, 0, 0);
-        setMessage(" ");
-
-        if (config.getRemoteAddress() != null && !config.getRemoteAddress().equals("") && config.getRemotePort() > 0) {
-            String remoteAddressTxt = config.getRemoteAddress() + ":" + config.getRemotePort();
-        }
-
-        int width = 500;
-        if (systemName.contains("os x")) {
-            width = 600;
-        }
         //mainFrame.setSize(width, 380);
 
 
@@ -166,11 +94,10 @@ public class ClientUI implements ClientUII {
             MLog.println(msg);
             if (systemName.contains("windows")) {
                 try {
-                    Process p = Runtime.getRuntime().exec("winpcap_install.exe", null);
+                    Runtime.getRuntime().exec("winpcap_install.exe", null);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                tcpEnable=false;
                 //System.exit(0);
             }
         }
@@ -179,7 +106,6 @@ public class ClientUI implements ClientUII {
             mapClient = new MapClient(this,tcpEnvSuccess);
         } catch (final Exception e1) {
             e1.printStackTrace();
-            capException = e1;
             //System.exit(0);
         }
 
@@ -189,34 +115,14 @@ public class ClientUI implements ClientUII {
 
         mapClient.setUi(this);
 
-        mapClient.setMapServer(config.getServerAddress(), config.getServerPort(), config.getRemotePort(), null, null, config.isDirect_cn(), config.getProtocal().equals("tcp"),
-                null);
+        mapClient.setMapServer(config.getServerAddress(), config.getServerPort(), config.getProtocal().equals("tcp")
+        );
 
-        Route.es.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                checkUpdate();
-            }
-        });
 
         setSpeed(config.getDownloadSpeed(), config.getUploadSpeed());
-
-        loadMapRule();
-    }
-    
-    String getServerAddressFromConfig(){
-    	 String server_addressTxt = config.getServerAddress();
-         if (config.getServerAddress() != null && !config.getServerAddress().equals("")) {
-             if (config.getServerPort() != 150
-                     && config.getServerPort() != 0) {
-                 server_addressTxt += (":" + config.getServerPort());
-             }
-         }
-         return server_addressTxt;
     }
 
-    void checkFireWallOn() {
+    private void checkFireWallOn() {
         if (systemName.contains("os x")) {
             String runFirewall = "ipfw";
             try {
@@ -233,8 +139,6 @@ public class ClientUI implements ClientUII {
                // e.printStackTrace();
             }
             success_firewall_osx = osx_fw_ipfw | osx_fw_pf;
-        } else if (systemName.contains("linux")) {
-            String runFirewall = "service iptables start";
         } else if (systemName.contains("windows")) {
             String runFirewall = "netsh advfirewall set allprofiles state on";
             Thread standReadThread = null;
@@ -314,9 +218,9 @@ public class ClientUI implements ClientUII {
 
     }
 
-    void checkQuanxian() {
+    private void checkQuanxian() {
         if (systemName.contains("windows")) {
-            boolean b = false;
+            boolean b;
             File file = new File(System.getenv("WINDIR") + "\\test.file");
             //System.out.println("kkkkkkk "+file.getAbsolutePath());
             try {
@@ -334,18 +238,7 @@ public class ClientUI implements ClientUII {
         }
     }
 
-    void loadMapRule() {
-//        tcpMapRuleListTable.setMapRuleList(mapClient.portMapManager.getMapList());
-    }
-
-    void select(String name) {
-//        int index = model.getMapRuleIndex(name);
-//        if (index > -1) {
-//            tcpMapRuleListTable.getSelectionModel().setSelectionInterval(index, index);
-//        }
-    }
-
-    void setSpeed(int downloadSpeed, int uploadSpeed) {
+    private void setSpeed(int downloadSpeed, int uploadSpeed) {
         config.setDownloadSpeed(downloadSpeed);
         config.setUploadSpeed(uploadSpeed);
         Route.localDownloadSpeed = downloadSpeed;
@@ -353,20 +246,13 @@ public class ClientUI implements ClientUII {
     }
 
 
-    void exit() {
+    private void exit() {
         System.exit(0);
     }
 
-    void openUrl(String url) {
-
-    }
-
-    public void setMessage(String message) {
-
-    }
-
-    ClientConfig loadConfig() {
+    private void loadConfig() {
         ClientConfig cfg = new ClientConfig();
+        String configFilePath = "client_config.json";
         if (!new File(configFilePath).exists()) {
             JSONObject json = new JSONObject();
             try {
@@ -380,37 +266,25 @@ public class ClientUI implements ClientUII {
             JSONObject json = JSONObject.parseObject(content);
             cfg.setServerAddress(json.getString("server_address"));
             cfg.setServerPort(json.getIntValue("server_port"));
-            cfg.setRemotePort(json.getIntValue("remote_port"));
-            cfg.setRemoteAddress(json.getString("remote_address"));
-            if (json.containsKey("direct_cn")) {
-                cfg.setDirect_cn(json.getBooleanValue("direct_cn"));
-            }
             cfg.setDownloadSpeed(json.getIntValue("download_speed"));
             cfg.setUploadSpeed(json.getIntValue("upload_speed"));
-            if (json.containsKey("socks5_port")) {
-                cfg.setSocks5Port(json.getIntValue("socks5_port"));
-            }
             if (json.containsKey("protocal")) {
                 cfg.setProtocal(json.getString("protocal"));
             }
-            if (json.containsKey("auto_start")) {
-                cfg.setAutoStart(json.getBooleanValue("auto_start"));
-            }
             if (json.containsKey("recent_address_list")) {
             	JSONArray list=json.getJSONArray("recent_address_list");
-            	for (int i = 0; i < list.size(); i++) {
-            		cfg.getRecentAddressList().add(list.get(i).toString());
-				}
+                for (Object aList : list) {
+                    cfg.getRecentAddressList().add(aList.toString());
+                }
             }
            
             config = cfg;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return cfg;
     }
 
-    public static String readFileUtf8(String path) throws Exception {
+    private static String readFileUtf8(String path) throws Exception {
         String str = null;
         FileInputStream fis = null;
         DataInputStream dis = null;
@@ -448,7 +322,7 @@ public class ClientUI implements ClientUII {
         return str;
     }
 
-    void saveFile(byte[] data, String path) throws Exception {
+    private void saveFile(byte[] data, String path) throws Exception {
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(path);
@@ -459,52 +333,21 @@ public class ClientUI implements ClientUII {
             throw e;
         } finally {
             if (fos != null) {
-                fos.close();
+                try {
+                    fos.close();
+                } catch (Exception ignored){
+                }
             }
         }
     }
 
-    public void updateUISpeed(int conn, int downloadSpeed, int uploadSpeed) {
-
-    }
-
-    boolean haveNewVersion() {
-        return serverVersion > localVersion;
-    }
-
-    public void checkUpdate() {
-
-    }
-
-    @Override
-    public boolean login() {
-        return false;
-    }
-
-
-    @Override
-    public boolean updateNode(boolean testSpeed) {
-        return true;
-
-    }
 
     public boolean isOsx_fw_pf() {
         return osx_fw_pf;
-    }
-
-    public void setOsx_fw_pf(boolean osx_fw_pf) {
-        this.osx_fw_pf = osx_fw_pf;
     }
 
     public boolean isOsx_fw_ipfw() {
         return osx_fw_ipfw;
     }
 
-    public void setOsx_fw_ipfw(boolean osx_fw_ipfw) {
-        this.osx_fw_ipfw = osx_fw_ipfw;
-    }
-
-    public void setVisible(boolean visible) {
-        this.isVisible = visible;
-    }
 }

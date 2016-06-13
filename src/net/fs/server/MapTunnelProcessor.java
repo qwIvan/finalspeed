@@ -2,54 +2,41 @@
 
 package net.fs.server;
 
+import com.alibaba.fastjson.JSONObject;
+import net.fs.client.Pipe;
+import net.fs.rudp.*;
+import net.fs.utils.MLog;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import net.fs.client.Pipe;
-import net.fs.rudp.ConnectionProcessor;
-import net.fs.rudp.ConnectionUDP;
-import net.fs.rudp.Constant;
-import net.fs.rudp.Route;
-import net.fs.rudp.UDPInputStream;
-import net.fs.rudp.UDPOutputStream;
-import net.fs.utils.MLog;
-
-import com.alibaba.fastjson.JSONObject;
-
 
 public class MapTunnelProcessor implements ConnectionProcessor{
 
-	Socket dstSocket=null;
+	private Socket dstSocket=null;
 
-	boolean closed=false;
+	private boolean closed=false;
 
-	MapTunnelProcessor pc;
-
-	ConnectionUDP conn;
+	private ConnectionUDP conn;
 
 
-	UDPInputStream  tis;
+	private UDPInputStream  tis;
 
-	UDPOutputStream tos;
+	private UDPOutputStream tos;
 
-	InputStream sis;
+	private InputStream sis;
 
-	OutputStream sos;
+	private OutputStream sos;
 
 	public void process(final ConnectionUDP conn){
 		this.conn=conn;
-		pc=this;
-		Route.es.execute(new Runnable(){
-			public void run(){
-				process();
-			}
-		});
+		Route.es.execute(this::process);
 	}
 
 
-	void process(){
+	private void process(){
 
 		tis=conn.uis;
 		tos=conn.uos;
@@ -62,7 +49,7 @@ public class MapTunnelProcessor implements ConnectionProcessor{
 			final int dstPort=requestJSon.getIntValue("dst_port");
 			String message="";
 			JSONObject responeJSon=new JSONObject();
-			int code=Constant.code_failed;			
+			int code;
 			code=Constant.code_success;
 			responeJSon.put("code", code);
 			responeJSon.put("message", message);
@@ -80,34 +67,27 @@ public class MapTunnelProcessor implements ConnectionProcessor{
 			final Pipe p1=new Pipe();
 			final Pipe p2=new Pipe();
 
-			Route.es.execute(new Runnable() {
-
-				public void run() {
-					try {
-						p1.pipe(sis, tos,100*1024,p2);
-					}catch (Exception e) {
-						//e.printStackTrace();
-					}finally{
-						close();
-						if(p1.getReadedLength()==0){
-							MLog.println("端口"+dstPort+"无返回数据");
-						}
-					}
-				}
-
-			});
-			Route.es.execute(new Runnable() {
-
-				public void run() {
-					try {
-						p2.pipe(tis,sos,100*1024*1024,conn);
-					}catch (Exception e) {
-						//e.printStackTrace();
-					}finally{
-						close();
-					}
-				}
-			});
+			Route.es.execute(() -> {
+                try {
+                    p1.pipe(sis, tos);
+                }catch (Exception e) {
+                    //e.printStackTrace();
+                }finally{
+                    close();
+                    if(p1.getReadedLength()==0){
+                        MLog.println("端口"+dstPort+"无返回数据");
+                    }
+                }
+            });
+			Route.es.execute(() -> {
+                try {
+                    p2.pipe(tis,sos);
+                }catch (Exception e) {
+                    //e.printStackTrace();
+                }finally{
+                    close();
+                }
+            });
 
 
 		} catch (Exception e2) {
@@ -119,7 +99,7 @@ public class MapTunnelProcessor implements ConnectionProcessor{
 
 	}
 
-	void close(){
+	private void close(){
 		if(!closed){
 			closed=true;
 			if(sis!=null){

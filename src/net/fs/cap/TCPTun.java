@@ -2,15 +2,7 @@
 
 package net.fs.cap;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
-
 import net.fs.utils.MLog;
-
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
@@ -21,90 +13,51 @@ import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.TcpPacket.TcpHeader;
 import org.pcap4j.util.MacAddress;
 
+import java.net.Inet4Address;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
 
-public class TCPTun {
 
-	HashMap<Integer,TcpPacket>  sendedTable_server=new HashMap<Integer,TcpPacket> ();
-	HashMap<Integer,TcpPacket>  sendedTable_history_server=new HashMap<Integer,TcpPacket> ();
+class TCPTun {
 
-	int clientSequence=Integer.MIN_VALUE;
+	private HashMap<Integer,TcpPacket>  sendedTable_server= new HashMap<>();
 
-	static Random random=new Random();
+	private static Random random=new Random();
 
-	PcapHandle sendHandle;
+	private PcapHandle sendHandle;
 
-	HashSet<Short> selfAckTable=new HashSet<Short>();
+	private HashSet<Short> selfAckTable= new HashSet<>();
 
-	HashMap<Integer, SendRecord> sendrecordTable=new HashMap<Integer, SendRecord>();
-
-	MacAddress dstMacaAddress;
-
-	int sequenceNum=-1;
-
-	Thread sendThread;
-
-	boolean sended=false;
-
-	Packet basePacket_server;
-
-	short baseIdent=100;
-
-	IPacket dst_readed_packet,last_send_packet;
-
-	int presend_server;
-
-	ArrayList<IPacket> packetList=new ArrayList<IPacket>();
-
-	HashMap<Integer, IPacket> packetTable_l=new HashMap<Integer, IPacket>();
-
-	HashMap<Integer, IPacket> packetTable=new HashMap<Integer, IPacket>();
-
-	ArrayList<IPacket> unacked_list=new ArrayList<IPacket>();
-
-	Object syn_packetList=new Object();
-
-	int max_client_ack=Integer.MIN_VALUE;
-
-	int sendIndex=0;
-
-	long lasSetDelayTime=0;
-
-	long lastDelay=300;
-
-	Object syn_delay=new Object();
-
-	Thread resendScanThread;
-
-	boolean connectReady=false;
+	private boolean connectReady=false;
 
 	boolean preDataReady=false;
 	
-	CapEnv capEnv;
+	private CapEnv capEnv;
 	
 	public Inet4Address remoteAddress;
 	public short remotePort;
-	int remoteStartSequence;
-	int remoteSequence;
-	int remoteIdent;
-	int remoteSequence_max;
+	private int remoteStartSequence;
+	private int remoteSequence;
+	private int remoteSequence_max;
 
-	Inet4Address localAddress;
+	private Inet4Address localAddress;
 	short localPort;
-	int localStartSequence=random.nextInt();
-	int localSequence;
-	int localIdent=random.nextInt(Short.MAX_VALUE-100);
+	private int localStartSequence=random.nextInt();
+	private int localSequence;
+	private int localIdent=random.nextInt(Short.MAX_VALUE-100);
 	
-	Object syn_send_data=new Object();
+	private final Object syn_send_data=new Object();
 		
-	long lastSendAckTime;
+	private long lastSendAckTime;
 	
 	long lastReceiveDataTime;
 	
-	long createTime=System.currentTimeMillis();;
-	
+	long createTime=System.currentTimeMillis();
+
 	String key;
 	
-	Object syn_ident=new Object();
+	private final Object syn_ident=new Object();
 	
 	//客户端发起
 	TCPTun(CapEnv capEnv,
@@ -144,25 +97,13 @@ public class TCPTun {
 		localAddress=capEnv.local_ipv4;
 	}
 
-	void init_client(Inet4Address clientAddress,int clientPort,
-			Inet4Address serverAddress,int serverPort,
-			int client_start_sequence){
-
-	}
-
-	void init_server(Inet4Address clientAddress,int clientPort,
-			Inet4Address serverAddress,int serverPort,
-			int client_start_sequence,int server_start_sequence){
-
-	}
-
-	public void process_server(final Packet packet,EthernetHeader ethernetHeader,IpV4Header ipV4Header,TcpPacket tcpPacket,boolean client){
+	public void process_server(final Packet packet, EthernetHeader ethernetHeader, IpV4Header ipV4Header, TcpPacket tcpPacket){
 		TcpHeader tcpHeader=tcpPacket.getHeader();
 		
 		if(!preDataReady){
 			if(!connectReady){
 				//第一次握手
-				dstMacaAddress=ethernetHeader.getSrcAddr();
+				MacAddress dstMacaAddress = ethernetHeader.getSrcAddr();
 				if(tcpHeader.getSyn()&&!tcpHeader.getAck()){
 					remoteStartSequence=tcpHeader.getSequenceNumber();
 					remoteSequence=remoteStartSequence+1;
@@ -172,7 +113,7 @@ public class TCPTun {
 					Packet responePacket=PacketUtils.createSyncAck(
 							capEnv.local_mac,
 							capEnv.gateway_mac,
-							localAddress,(short)localPort,
+							localAddress, localPort,
 							ipV4Header.getSrcAddr(),tcpHeader.getSrcPort().value(),
 							tcpHeader.getSequenceNumber()+1,localStartSequence,(short)0
 							);
@@ -232,7 +173,7 @@ public class TCPTun {
 
 	}
 
-	public void process_client(CapEnv capEnv,final Packet packet,EthernetHeader ethernetHeader,IpV4Header ipV4Header,TcpPacket tcpPacket,boolean client){
+	public void process_client(CapEnv capEnv, final Packet packet, IpV4Header ipV4Header, TcpPacket tcpPacket){
 
 		TcpHeader tcpHeader=tcpPacket.getHeader();
 		byte[] payload=null;
@@ -256,12 +197,10 @@ public class TCPTun {
 							MLog.println(""+p3);
 							connectReady=true;
 							
-							byte[] sim=getSimRequestHead(remotePort);
+							byte[] sim=getSimRequestHead();
 							sendData(sim);
 							MLog.println("发送请求 "+" ident "+localIdent);
-						} catch (PcapNativeException e) {
-							e.printStackTrace();
-						} catch (NotOpenException e) {
+						} catch (PcapNativeException | NotOpenException e) {
 							e.printStackTrace();
 						}
 					}
@@ -291,7 +230,7 @@ public class TCPTun {
 
 	}
 	
-	void onReceiveDataPacket(TcpPacket tcpPacket,TcpHeader tcpHeader,IpV4Header ipV4Header ){
+	private void onReceiveDataPacket(TcpPacket tcpPacket, TcpHeader tcpHeader, IpV4Header ipV4Header){
 		if(System.currentTimeMillis()-lastSendAckTime>1000){
 			int rs=tcpHeader.getSequenceNumber()+tcpPacket.getPayload().getRawData().length;
 			if(rs>remoteSequence_max){
@@ -300,7 +239,7 @@ public class TCPTun {
 			Packet ackPacket=PacketUtils.createAck(
 					capEnv.local_mac,
 					capEnv.gateway_mac,
-					localAddress,(short)localPort,
+					localAddress, localPort,
 					ipV4Header.getSrcAddr(),tcpHeader.getSrcPort().value(),
 					remoteSequence_max, localSequence,getIdent());
 			try {
@@ -319,7 +258,7 @@ public class TCPTun {
 							capEnv.gateway_mac,
 							localAddress,localPort,
 							remoteAddress,remotePort,
-							localSequence,remoteSequence_max, data, (short) getIdent());
+							localSequence,remoteSequence_max, data, getIdent());
 		synchronized (syn_send_data) {
 			try {
 				sendHandle.sendPacket(dataPacket);
@@ -331,7 +270,7 @@ public class TCPTun {
 		
 	}
 	
-	short getIdent(){
+	private short getIdent(){
 		synchronized (syn_ident) {
 			localIdent++;
 			if(localIdent>=Short.MAX_VALUE){
@@ -341,72 +280,43 @@ public class TCPTun {
 		return (short) localIdent;
 	}
 	
-	public static byte[] getSimResponeHead(){
-		StringBuffer sb=new StringBuffer();
-		
-		sb.append("HTTP/1.1 200 OK"+"\r\n");
-		sb.append("Server: Apache/2.2.15 (CentOS)"+"\r\n");
-		sb.append("Accept-Ranges: bytes"+"\r\n");
-		sb.append("Content-Length: "+(Math.abs(random.nextInt()))+"\r\n");
-		sb.append("Connection: Keep-Alive"+"\r\n");
-		sb.append("Content-Type: application/octet-stream"+"\r\n");
-		sb.append("\r\n");
-		
-		String simRequest=sb.toString();
-		byte[] simData=simRequest.getBytes();
-		return simData;
+	private static byte[] getSimResponeHead(){
+
+		String simRequest= ("HTTP/1.1 200 OK" + "\r\n") +
+				"Server: Apache/2.2.15 (CentOS)" + "\r\n" +
+				"Accept-Ranges: bytes" + "\r\n" +
+				"Content-Length: " + Math.abs(random.nextInt()) + "\r\n" +
+				"Connection: Keep-Alive" + "\r\n" +
+				"Content-Type: application/octet-stream" + "\r\n" +
+				"\r\n";
+		return simRequest.getBytes();
 	}
 	
-	public static byte[] getSimRequestHead(int port){
-		StringBuffer sb=new StringBuffer();
+	private static byte[] getSimRequestHead(){
+		StringBuilder sb=new StringBuilder();
 		String domainName=getRandomString(5+random.nextInt(10))+".com";				
-		sb.append("GET /"+getRandomString(8+random.nextInt(10))+"."+getRandomString(2+random.nextInt(5))+" HTTP/1.1"+"\r\n");
+		sb.append("GET /").append(getRandomString(8 + random.nextInt(10))).append(".").append(getRandomString(2 + random.nextInt(5))).append(" HTTP/1.1").append("\r\n");
 		sb.append("Accept: application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, */*"+"\r\n");
 		sb.append("Accept-Language: zh-CN"+"\r\n");
 		sb.append("Accept-Encoding: gzip, deflate"+"\r\n");
 		sb.append("User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0"+"\r\n");
-		sb.append("Host: "+domainName+"\r\n");
+		sb.append("Host: ").append(domainName).append("\r\n");
 		sb.append("Connection: Keep-Alive"+"\r\n");
 		sb.append("\r\n");
 		String simRequest=sb.toString();
-		byte[] simData=simRequest.getBytes();
-		return simData;
+		return simRequest.getBytes();
 	}
 	
-	public static String getRandomString(int length) { //length表示生成字符串的长度  
+	private static String getRandomString(int length) { //length表示生成字符串的长度
 	    String base = "abcdefghkmnopqrstuvwxyz";     
 	    Random random = new Random();     
-	    StringBuffer sb = new StringBuffer();     
+	    StringBuilder sb = new StringBuilder();
 	    for (int i = 0; i < length; i++) {     
 	        int number = random.nextInt(base.length());     
 	        sb.append(base.charAt(number));     
 	    }
 	    return sb.toString();
-	 } 
-
-	public InetAddress getSourcrAddress() {
-		return localAddress;
-	}
-
-	public int getSourcePort() {
-		return localPort;
-	}
-
-	public void setSourcePort(short sourcePort) {
-		this.localPort = sourcePort;
-	}
-
-	public boolean isConnectReady() {
-		return connectReady;
-	}
-
-	public void setConnectReady(boolean connectReady) {
-		this.connectReady = connectReady;
-	}
-
-	public String getKey() {
-		return key;
-	}
+	 }
 
 	public void setKey(String key) {
 		this.key = key;

@@ -2,6 +2,12 @@
 
 package net.fs.rudp;
 
+import net.fs.rudp.message.PingMessage;
+import net.fs.rudp.message.PingMessage2;
+import net.fs.utils.ByteIntConvert;
+import net.fs.utils.MLog;
+import net.fs.utils.MessageCheck;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -9,73 +15,57 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
 
-import net.fs.rudp.message.PingMessage;
-import net.fs.rudp.message.PingMessage2;
-import net.fs.utils.ByteIntConvert;
-import net.fs.utils.MLog;
-import net.fs.utils.MessageCheck;
-
 public class ClientControl {
 	
-	int clientId;
+	private int clientId;
+
+
+	private Object synlock=new Object();
 	
-	
-	Thread sendThread;
-	
-	Object synlock=new Object();
-	
-	private HashMap<Integer, SendRecord> sendRecordTable=new HashMap<Integer, SendRecord>();
+	private HashMap<Integer, SendRecord> sendRecordTable= new HashMap<>();
 
 	
-	HashMap<Integer, SendRecord> sendRecordTable_remote=new HashMap<Integer, SendRecord>();
+	HashMap<Integer, SendRecord> sendRecordTable_remote= new HashMap<>();
 	
 
-	long startSendTime=0;
+	private long startSendTime=0;
 	
-	int maxSpeed=(int) (1024*1024);
+	private int maxSpeed=(int) (1024*1024);
 	
-	int initSpeed=(int) maxSpeed;
+	private int initSpeed=(int) maxSpeed;
 	
-	int currentSpeed=initSpeed;
+	private int currentSpeed=initSpeed;
+
+	private final Object syn_timeid=new Object();
 	
-	int lastTime=-1;
+	private long sended=0;
 	
-	Object syn_timeid=new Object();
-	
-	long sended=0;
-	
-	long markTime=0;
+	private long markTime=0;
 		
-	long lastSendPingTime,lastReceivePingTime=System.currentTimeMillis();
+	private long lastSendPingTime;
+	private long lastReceivePingTime=System.currentTimeMillis();
 	
-	Random ran=new Random();
+	private Random ran=new Random();
 	
-	HashMap<Integer, Long> pingTable=new HashMap<Integer, Long>();
+	private HashMap<Integer, Long> pingTable= new HashMap<>();
 	
 	public int pingDelay=250;
 	
-	int clientId_real=-1;
+	private int clientId_real=-1;
 	
-	long needSleep_All,trueSleep_All;
-	
-	int maxAcked=0;
-	
-	long lastLockTime;
-	
-	Route route;
+	private long needSleep_All;
+	private long trueSleep_All;
+
+	private Route route;
 	
 	InetAddress dstIp;
 	
 	int dstPort;
 	
-	public HashMap<Integer, ConnectionUDP> connTable=new  HashMap<Integer, ConnectionUDP>();
+	private HashMap<Integer, ConnectionUDP> connTable= new HashMap<>();
 		
-	Object syn_connTable=new Object();
-	
-	Object syn_tunTable=new Object();
-	
-	String password;
-	
+	private final Object syn_connTable=new Object();
+
 	public ResendManage resendMange;
 	
 	boolean closed=false;
@@ -93,7 +83,7 @@ public class ClientControl {
 
 	public void onReceivePacket(DatagramPacket dp){
 		byte[] dpData=dp.getData();
-		int sType=0;
+		int sType;
 		sType=MessageCheck.checkSType(dp);
 		int remote_clientId=ByteIntConvert.toInt(dpData, 8);
 		if(sType==net.fs.rudp.message.MessageType.sType_PingMessage){
@@ -106,7 +96,7 @@ public class ClientControl {
 			Long t=pingTable.get(pm.getPingId());
 			if(t!=null){
 				pingDelay=(int) (System.currentTimeMillis()-t);
-				String protocal="";
+				String protocal;
 				if(route.isUseTcpTun()){
 					protocal="tcp";
 				}else {
@@ -145,22 +135,18 @@ public class ClientControl {
 			while(it.hasNext()){
 				final ConnectionUDP conn=connTable.get(it.next());
 				if(conn!=null){
-					Route.es.execute(new Runnable() {
-						
-						@Override
-						public void run() {
-							conn.stopnow=true;
-							conn.destroy(true);
-						}
-					});
+					Route.es.execute(() -> {
+                        conn.stopnow=true;
+                        conn.destroy(true);
+                    });
 				
 				}
 			}
 		}
 	}
 	
-	Iterator<Integer> getConnTableIterator(){
-		Iterator<Integer> it=null;
+	private Iterator<Integer> getConnTableIterator(){
+		Iterator<Integer> it;
 		synchronized (syn_connTable) {
 			it=new CopiedIterator(connTable.keySet().iterator());
 		}
@@ -171,10 +157,6 @@ public class ClientControl {
 		clientId_real=newClientId;
 		sendRecordTable.clear();
 		sendRecordTable_remote.clear();
-	}
-	
-	public void onSendDataPacket(ConnectionUDP conn){
-		
 	}
 	
 	public void sendPingMessage(){
@@ -192,7 +174,7 @@ public class ClientControl {
 		}
 			}
 	
-	public void sendPingMessage2(int pingId,InetAddress dstIp,int dstPort){
+	private void sendPingMessage2(int pingId, InetAddress dstIp, int dstPort){
 		PingMessage2 lm=new PingMessage2(0,route.localclientId,pingId);
 		lm.setDstAddress(dstIp);
 		lm.setDstPort(dstPort);
@@ -202,21 +184,13 @@ public class ClientControl {
 			e.printStackTrace();
 		}
 	}
-	
-	public void onReceivePing(PingMessage pm){
-		if(route.mode==2){
-			currentSpeed=pm.getDownloadSpeed()*1024;
-			//#MLog.println("更新对方速度: "+currentSpeed);
-		}
-	}
-	
+
 	SendRecord getSendRecord(int timeId){
-		SendRecord record=null;
+		SendRecord record;
 		synchronized (syn_timeid) {
 			record=sendRecordTable.get(timeId);
 			if(record==null){
 				record=new SendRecord();
-				record.setTimeId(timeId);
 			    sendRecordTable.put(timeId, record);
 			}
 		}
@@ -228,15 +202,9 @@ public class ClientControl {
 		if(startSendTime==0){
 			startSendTime=current;
 		}
-		int timeId=(int) ((current-startSendTime)/1000);
-		return timeId;
+		return (int) ((current-startSendTime)/1000);
 	}
-	
-	public int getTimeId(long time){
-		int timeId=(int) ((time-startSendTime)/1000);
-		return timeId;
-	}
-	
+
 	//纳秒
 	public synchronized void sendSleep(long startTime,int length){
 		if(route.mode==1){
@@ -285,14 +253,6 @@ public class ClientControl {
 		return synlock;
 	}
 
-	public void setSynlock(Object synlock) {
-		this.synlock = synlock;
-	}
-
-	public void setClientId(int clientId) {
-		this.clientId = clientId;
-	}
-
 	public int getClientId_real() {
 		return clientId_real;
 	}
@@ -306,24 +266,8 @@ public class ClientControl {
 		return lastSendPingTime;
 	}
 
-	public void setLastSendPingTime(long lastSendPingTime) {
-		this.lastSendPingTime = lastSendPingTime;
-	}
-
 	public long getLastReceivePingTime() {
 		return lastReceivePingTime;
 	}
 
-	public void setLastReceivePingTime(long lastReceivePingTime) {
-		this.lastReceivePingTime = lastReceivePingTime;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
 }

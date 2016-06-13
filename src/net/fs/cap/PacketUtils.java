@@ -24,29 +24,27 @@ import org.pcap4j.util.MacAddress;
 
 import net.fs.utils.ByteShortConvert;
 
-public class PacketUtils {
+class PacketUtils {
 	
-	static byte ttl=64;
+	private static byte ttl=64;
 	
-	static short mtu=1440;
-	
-	static byte shiftCount=6;
-	
-	static short window=(short) (64*1024-1);
+	private static short mtu=1440;
+
+	private static short window=(short) (64*1024-1);
 	
 	public static boolean ppp=false;
 	
 	public static byte[] pppHead_static={0x11,0x00,0x44,0x44,0x00,0x44,0x00,0x21};
 	
 	
-	public static Packet buildIpV4(
+	private static Packet buildIpV4(
 			MacAddress srcAddress_mac,
 			MacAddress dstAddrress_mac,
 			IpV4Packet.Builder builder_ipv4){
 
-		org.pcap4j.packet.Packet.Builder builder=null;
-		EtherType etherType=null;
-		Packet p=null;
+		org.pcap4j.packet.Packet.Builder builder;
+		EtherType etherType;
+		Packet p;
 		if(ppp){
 			etherType=EtherType.PPPOE_SESSION_STAGE;
 			
@@ -89,7 +87,7 @@ public class PacketUtils {
 			Inet4Address srcAddress,short srcPort,
 			Inet4Address dstAddress,short dstPort,
 			int sequence,int ack, byte[] data,short ident){
-		Packet p=null;
+		Packet p;
 
 		TcpPacket.Builder builder_tcp=new TcpPacket.Builder();
 		builder_tcp.payloadBuilder(new UnknownPacket.Builder().rawData(data));
@@ -201,10 +199,9 @@ public class PacketUtils {
 		builder_ipv4.version(IpVersion.IPV4);
 		builder_ipv4.payloadBuilder(builder_tcp);
 		//
-		
-		Packet p = buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
+
 		//System.out.println("自定义确认 "+" identification "+identification+" ack_sequence "+ack_sequence+" # "+tcpPacket.getHeader());
-		return p;
+		return buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
 
 	}
 	
@@ -230,7 +227,7 @@ public class PacketUtils {
 		//builder_tcp.fin(tcpHeader.getFin());
 
 
-		ArrayList<TcpOption> tcp_options=new ArrayList<TcpOption>();
+		ArrayList<TcpOption> tcp_options= new ArrayList<>();
 		
 		TcpNoOperationOption nop=TcpNoOperationOption.getInstance();
 
@@ -245,6 +242,7 @@ public class PacketUtils {
 		
 		tcp_options.add(nop);
 
+		byte shiftCount = 6;
 		TcpWindowScaleOption win_option=new TcpWindowScaleOption.Builder().shiftCount(shiftCount).correctLengthAtBuild(true).build();
 		tcp_options.add(win_option);
 
@@ -286,9 +284,8 @@ public class PacketUtils {
 		builder_ipv4.version(IpVersion.IPV4);
 		builder_ipv4.payloadBuilder(builder_tcp);
 		//
-		Packet p = buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
 		//System.out.println("自定义确认 "+" identification "+identification+" ack_sequence "+ack_sequence+" # "+tcpPacket.getHeader());
-		return p;
+		return buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
 
 	}
 	
@@ -313,7 +310,7 @@ public class PacketUtils {
 		
 		TcpNoOperationOption nop=TcpNoOperationOption.getInstance();
 		
-		ArrayList<TcpOption> tcp_options=new ArrayList<TcpOption>();
+		ArrayList<TcpOption> tcp_options= new ArrayList<>();
 		
 		TcpMaximumSegmentSizeOption seg_option=new TcpMaximumSegmentSizeOption.Builder().maxSegSize(mtu).correctLengthAtBuild(true).build();
 		tcp_options.add(seg_option);
@@ -367,12 +364,11 @@ public class PacketUtils {
 		builder_ipv4.version(IpVersion.IPV4);
 		builder_ipv4.payloadBuilder(builder_tcp);
 //
-		Packet p = buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
-//		IpV4Packet p4=builder_ipv4.build();
+		//		IpV4Packet p4=builder_ipv4.build();
 //		TcpPacket tcpPacket=builder_tcp.build();
 		//selfAckTable.add(identification);
 		//System.out.println("自定义确认 "+" identification "+identification+" ack_sequence "+ack_sequence+" # "+tcpPacket.getHeader());
-		return p;
+		return buildIpV4(srcAddress_mac,dstAddrress_mac,builder_ipv4);
 
 	}
 		

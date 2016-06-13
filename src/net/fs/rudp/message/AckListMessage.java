@@ -2,28 +2,33 @@
 
 package net.fs.rudp.message;
 
-import java.net.DatagramPacket;
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import net.fs.rudp.SendRecord;
 import net.fs.utils.ByteIntConvert;
 import net.fs.utils.ByteShortConvert;
+
+import java.net.DatagramPacket;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 
 
 
 public class AckListMessage extends Message{
-	ArrayList<Integer> ackList;
-	byte[] dpData=null;
-	int lastRead;
+	private ArrayList<Integer> ackList;
+	private byte[] dpData=null;
+	private int lastRead;
 
-	int r1,r2,r3,s1,s2,s3;
+	private int r1;
+	private int r2;
+	private int r3;
+	private int s1;
+	private int s2;
+	private int s3;
 
 	@SuppressWarnings("unchecked")
-	public AckListMessage(long connId,ArrayList ackList,int lastRead,
-			HashMap<Integer, SendRecord> sendRecordTable,int timeId,
-			int connectId,int clientId){
+	public AckListMessage(ArrayList ackList, int lastRead,
+						  HashMap<Integer, SendRecord> sendRecordTable, int timeId,
+						  int connectId, int clientId){
 		this.clientId=clientId;
 		this.connectId=connectId;
 		this.ackList=ackList;
@@ -63,9 +68,8 @@ public class AckListMessage extends Message{
 		}
 		ByteIntConvert.toByteArray(s2, dpData, len1+12+8);
 
-		int u3=timeId;
-		ByteIntConvert.toByteArray(u3, dpData,len1+16+8);
-		SendRecord r3=sendRecordTable.get(u3);
+		ByteIntConvert.toByteArray(timeId, dpData,len1+16+8);
+		SendRecord r3=sendRecordTable.get(timeId);
 		int s3=0;
 		if(r3!=null){
 			s3=r3.getSendSize();
@@ -91,8 +95,8 @@ public class AckListMessage extends Message{
 		
 		lastRead=ByteIntConvert.toInt(dpData, 4+8);
 		int sum=ByteShortConvert.toShort(dpData, 8+8);
-		ackList=new ArrayList<Integer>();
-		int t=0;
+		ackList= new ArrayList<>();
+		int t;
 		for(int i=0;i<sum;i++){
 			t=10+4*i;
 			int sequence=ByteIntConvert.toInt(dpData, t+8);

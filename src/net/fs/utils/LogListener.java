@@ -1,7 +1,7 @@
 package net.fs.utils;
 
-public interface LogListener {
+interface LogListener {
 	
-	public void onAppendContent(LogOutputStream los,String text);
+	void onAppendContent(String text);
 	
 }

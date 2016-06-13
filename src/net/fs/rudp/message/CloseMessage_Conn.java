@@ -10,11 +10,8 @@ import net.fs.utils.ByteShortConvert;
 
 public class CloseMessage_Conn extends Message{
 	
-	public short sType=net.fs.rudp.message.MessageType.sType_CloseMessage_Conn;
-	
-	byte [] data;
-	byte [] dpData;
-		
+	private short sType=net.fs.rudp.message.MessageType.sType_CloseMessage_Conn;
+
 	public CloseMessage_Conn(int connectId,int clientId){
 		byte[] dpData=new byte[12];
 		this.clientId=clientId;
@@ -28,7 +25,7 @@ public class CloseMessage_Conn extends Message{
 	
 	public CloseMessage_Conn(DatagramPacket dp){
 		this.dp=dp;
-		dpData=dp.getData();
+		byte[] dpData = dp.getData();
 		ver=ByteShortConvert.toShort(dpData, 0);
 		sType=ByteShortConvert.toShort(dpData, 2);
 		connectId=ByteIntConvert.toInt(dpData, 4);

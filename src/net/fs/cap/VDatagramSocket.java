@@ -12,20 +12,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 import net.fs.rudp.Route;
 
 public class VDatagramSocket extends DatagramSocket{
+
+	private boolean client=true;
 	
-	boolean useTcpTun=true;
+	private LinkedBlockingQueue<TunData> packetList= new LinkedBlockingQueue<>();
 	
-	boolean client=true;
+	private CapEnv capEnv;
 	
-	LinkedBlockingQueue<TunData> packetList=new LinkedBlockingQueue<TunData> ();
+	private int localPort;
 	
-	CapEnv capEnv;
+	private final Object syn_tun=new Object();
 	
-	int localPort;
-	
-	Object syn_tun=new Object();
-	
-	boolean tunConnecting=false;
+	private boolean tunConnecting=false;
 
 	public VDatagramSocket() throws SocketException {
 		
@@ -40,7 +38,7 @@ public class VDatagramSocket extends DatagramSocket{
 	 }
 
 	public void send(DatagramPacket p) throws IOException  {
-		TCPTun tun=null;
+		TCPTun tun;
 		if(client){
 			tun=capEnv.tcpManager.getDefaultTcpTun();
 			if(tun!=null){
@@ -69,7 +67,7 @@ public class VDatagramSocket extends DatagramSocket{
 	}
 	
 	
-	void tryConnectTun_Client(InetAddress dstAddress,short dstPort){
+	private void tryConnectTun_Client(InetAddress dstAddress, short dstPort){
 		synchronized (syn_tun) {
 			if(capEnv.tcpManager.getDefaultTcpTun()==null){
 				if(tunConnecting){
@@ -93,7 +91,7 @@ public class VDatagramSocket extends DatagramSocket{
 	
 	
 	public synchronized void receive(DatagramPacket p) throws IOException {
-		TunData td=null;
+		TunData td;
 		try {
 			td=packetList.take();
 			p.setData(td.data);
@@ -109,16 +107,8 @@ public class VDatagramSocket extends DatagramSocket{
 		packetList.add(td);
 	}
 
-	public boolean isClient() {
-		return client;
-	}
-
 	public void setClient(boolean client) {
 		this.client = client;
-	}
-
-	public CapEnv getCapEnv() {
-		return capEnv;
 	}
 
 	public void setCapEnv(CapEnv capEnv) {

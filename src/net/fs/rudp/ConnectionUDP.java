@@ -1,10 +1,7 @@
 // Copyright (c) 2015 D1SM.net
 
 package net.fs.rudp;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.util.Random;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class ConnectionUDP {
 	public InetAddress dstIp;
@@ -13,33 +10,24 @@ public class ConnectionUDP {
 	public Receiver receiver;
 	public UDPOutputStream uos;
 	public UDPInputStream uis;
-	long connetionId;
 	Route route;
-	int mode;
 	private boolean connected=true;
-	long lastLiveTime=System.currentTimeMillis();
-	long lastSendLiveTime=0;
-	
-	static Random ran=new Random();
-	
+
 	int connectId;
-	
-	ConnectionProcessor connectionProcessor;
-	
-	private LinkedBlockingQueue<DatagramPacket> dpBuffer=new LinkedBlockingQueue<DatagramPacket>();
-	
+
 	public ClientControl clientControl;
 	
-	public boolean localClosed=false,remoteClosed=false,destroied=false;
+	private boolean localClosed=false;
+	private boolean remoteClosed=false;
+	private boolean destroied=false;
 	
 	public boolean stopnow=false;
 	
-	public ConnectionUDP(Route ro,InetAddress dstIp,int dstPort,int mode,int connectId,ClientControl clientControl) throws Exception {
+	public ConnectionUDP(Route ro,InetAddress dstIp,int dstPort,int mode,int connectId,ClientControl clientControl) {
 		this.clientControl=clientControl;
 		this.route=ro;
 		this.dstIp=dstIp;
 		this.dstPort=dstPort;
-		this.mode=mode;
 		if(mode==1){
 			//MLog.println("                 发起连接RUDP "+dstIp+":"+dstPort+" connectId "+connectId);
 		}else if(mode==2){
@@ -71,15 +59,10 @@ public class ConnectionUDP {
 				notifyAll();
 			}
 	}
-	
-	public DatagramPacket getPacket(int connectId) throws InterruptedException{
-		DatagramPacket dp=(DatagramPacket)dpBuffer.take();
-		return dp;
-	}
-	
+
 	@Override
 	public String toString(){
-		return new String(dstIp+":"+dstPort);
+		return dstIp + ":" + dstPort;
 	}
 	
 	public boolean isConnected(){
@@ -118,12 +101,5 @@ public class ConnectionUDP {
 			}
 		}
 	}
-	
-	public void close_timeout(){
-		////#MLog.println("超时关闭RDP连接");
-	}
-	
-	void live(){
-		lastLiveTime=System.currentTimeMillis();
-	}
+
 }

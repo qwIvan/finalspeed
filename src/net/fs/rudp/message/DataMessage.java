@@ -3,35 +3,30 @@
 package net.fs.rudp.message;
 
 
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-
 import net.fs.utils.ByteIntConvert;
 import net.fs.utils.ByteShortConvert;
 
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+
 public class DataMessage extends Message{
-	short sType=net.fs.rudp.message.MessageType.sType_DataMessage;
-	int sequence=0;
-	int length=0;
-	byte [] data;
-	byte [] dpData;
-	int timeId;
+	private short sType=net.fs.rudp.message.MessageType.sType_DataMessage;
+	private int sequence=0;
+	private int length=0;
+	private byte [] data;
+	private byte [] dpData;
+	private int timeId;
 	
-	InetAddress dstAddress;
+	private InetAddress dstAddress;
 	
-	int dstPort;
-	
-	int offset;
-		
-	int firstSendTimeId;
-	
-	long firstSendTime;
-	
+	private int dstPort;
+
+	private int firstSendTimeId;
+
 	public DataMessage(int sequence,byte[] dataq,int offset,short length,
 			int connectId,int clientId){
 		this.sequence=sequence;
-		this.offset=offset;
-		this.length=(short) (length);
+		this.length= length;
 		this.data=new byte[this.length];
 		this.clientId=clientId;
 		this.connectId=connectId;
@@ -82,29 +77,13 @@ public class DataMessage extends Message{
 	 public byte[] getData(){
 		return data;
 	}
-	 
-	public int getLength(){
-		return length;
-	}
 
 	public int getTimeId() {
 		return timeId;
 	}
 
-	public void setTimeId(int timeId) {
-		this.timeId = timeId;
-	}
-
-	public InetAddress getDstAddress() {
-		return dstAddress;
-	}
-
 	public void setDstAddress(InetAddress dstAddress) {
 		this.dstAddress = dstAddress;
-	}
-
-	public int getDstPort() {
-		return dstPort;
 	}
 
 	public void setDstPort(int dstPort) {
@@ -119,12 +98,4 @@ public class DataMessage extends Message{
 		this.firstSendTimeId = firstSendTimeId;
 	}
 
-	public long getFirstSendTime() {
-		return firstSendTime;
-	}
-
-	public void setFirstSendTime(long firstSendTime) {
-		this.firstSendTime = firstSendTime;
-	}
-	
 }

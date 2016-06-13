@@ -4,27 +4,17 @@ package net.fs.client;
 
 import java.util.ArrayList;
 
-public class ClientConfig {
+class ClientConfig {
 	
-	String serverAddress="";
+	private String serverAddress="";
 	
-	int serverPort;
-	
-	int remotePort;
-	
+	private int serverPort;
+
 	int downloadSpeed,uploadSpeed;
-	
-	boolean direct_cn=true;
-	
-	int socks5Port=1083;
-	
-	String remoteAddress;
-	
-	String protocal="tcp";
-	
-	boolean autoStart=false;
-	
-	ArrayList<String> recentAddressList=new ArrayList<String>();
+
+	private String protocal="tcp";
+
+	private ArrayList<String> recentAddressList= new ArrayList<>();
 
 	public String getServerAddress() {
 		return serverAddress;
@@ -40,22 +30,6 @@ public class ClientConfig {
 
 	public void setServerPort(int serverPort) {
 		this.serverPort = serverPort;
-	}
-
-	public int getRemotePort() {
-		return remotePort;
-	}
-
-	public void setRemotePort(int remotePort) {
-		this.remotePort = remotePort;
-	}
-
-	public boolean isDirect_cn() {
-		return direct_cn;
-	}
-
-	public void setDirect_cn(boolean direct_cn) {
-		this.direct_cn = direct_cn;
 	}
 
 	public int getDownloadSpeed() {
@@ -74,22 +48,6 @@ public class ClientConfig {
 		this.uploadSpeed = uploadSpeed;
 	}
 
-	public int getSocks5Port() {
-		return socks5Port;
-	}
-
-	public void setSocks5Port(int socks5Port) {
-		this.socks5Port = socks5Port;
-	}
-
-	public String getRemoteAddress() {
-		return remoteAddress;
-	}
-
-	public void setRemoteAddress(String remoteAddress) {
-		this.remoteAddress = remoteAddress;
-	}
-
 	public String getProtocal() {
 		return protocal;
 	}
@@ -98,20 +56,8 @@ public class ClientConfig {
 		this.protocal = protocal;
 	}
 
-	public boolean isAutoStart() {
-		return autoStart;
-	}
-
-	public void setAutoStart(boolean autoStart) {
-		this.autoStart = autoStart;
-	}
-
 	public ArrayList<String> getRecentAddressList() {
 		return recentAddressList;
 	}
 
-	public void setRecentAddressList(ArrayList<String> recentAddressList) {
-		this.recentAddressList = recentAddressList;
-	}
-	
 }

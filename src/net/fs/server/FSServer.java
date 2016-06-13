@@ -4,32 +4,19 @@
 
 package net.fs.server;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.BindException;
-
-import net.fs.rudp.ConnectionProcessor;
 import net.fs.rudp.Route;
 import net.fs.utils.MLog;
 
-public class FSServer {
+import java.io.*;
+import java.net.BindException;
 
-	ConnectionProcessor imTunnelProcessor;
+class FSServer {
 
-	Route route_udp, route_tcp, route;
+	private int routePort = 150;
 
-	int routePort = 150;
-
-	static FSServer udpServer;
-
-	String systemName = System.getProperty("os.name").toLowerCase();
+	private String systemName = System.getProperty("os.name").toLowerCase();
 	
-	boolean success_firewall_windows=true;
+	private boolean success_firewall_windows=true;
 
 	public static void main(String[] args) {
 		try {
@@ -44,15 +31,10 @@ public class FSServer {
 		}
 	}
 
-	static FSServer get() {
-		return udpServer;
-	}
-
-	public FSServer() throws Exception {
+	private FSServer() throws Exception {
 		MLog.info("");
 		MLog.info("FinalSpeed server starting... ");
 		MLog.info("System Name: " + systemName);
-		udpServer = this;
 		final MapTunnelProcessor mp = new MapTunnelProcessor();
 
 		String port_s = readFileData("./cnf/listen_port");
@@ -60,7 +42,7 @@ public class FSServer {
 			port_s = port_s.replaceAll("\n", "").replaceAll("\r", "");
 			routePort = Integer.parseInt(port_s);
 		}
-		route_udp = new Route(mp.getClass().getName(), (short) routePort, Route.mode_server, false,true);
+		new Route(mp.getClass().getName(), (short) routePort, Route.mode_server, false, true);
 		if (systemName.equals("linux")) {
 			startFirewall_linux();
 			setFireWall_linux_udp();
@@ -68,30 +50,26 @@ public class FSServer {
 			startFirewall_windows();
 		}
 
-		Route.es.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					route_tcp = new Route(mp.getClass().getName(), (short) routePort, Route.mode_server, true,true);
-					if (systemName.equals("linux")) {
-						setFireWall_linux_tcp();
-					}else if(systemName.contains("windows")){
-						if(success_firewall_windows){
-							setFireWall_windows_tcp();
-						}else{
-							System.out.println("启动windows防火墙失败,请先运行防火墙服务.");
-						}
-					}
-				} catch (Exception e) {
-					// e.printStackTrace();
-				}
-			}
-		});
+		Route.es.execute(() -> {
+            try {
+                new Route(mp.getClass().getName(), (short) routePort, Route.mode_server, true, true);
+                if (systemName.equals("linux")) {
+                    setFireWall_linux_tcp();
+                }else if(systemName.contains("windows")){
+                    if(success_firewall_windows){
+                        setFireWall_windows_tcp();
+                    }else{
+                        System.out.println("启动windows防火墙失败,请先运行防火墙服务.");
+                    }
+                }
+            } catch (Exception e) {
+                // e.printStackTrace();
+            }
+        });
 
 	}
 	
-	void startFirewall_windows(){
+	private void startFirewall_windows(){
 
 		String runFirewall="netsh advfirewall set allprofiles state on";
 		Thread standReadThread=null;
@@ -168,7 +146,7 @@ public class FSServer {
 	
 	}
 	
-	void setFireWall_windows_tcp() {
+	private void setFireWall_windows_tcp() {
 		cleanRule_windows();
 		try {
 			if(systemName.contains("xp")||systemName.contains("2003")){
@@ -188,7 +166,7 @@ public class FSServer {
 		}
 	}
 	
-	void cleanRule_windows(){
+	private void cleanRule_windows(){
 		try {
 			if(systemName.contains("xp")||systemName.contains("2003")){
 				String cmd_delete="ipseccmd -p \"tcptun_fs_server\" -w reg -y";
@@ -206,19 +184,19 @@ public class FSServer {
 	
 	}
 
-	void startFirewall_linux() {
+	private void startFirewall_linux() {
 		String cmd1 = "service iptables start";
 		runCommand(cmd1);
 	}
 
-	void setFireWall_linux_udp() {
+	private void setFireWall_linux_udp() {
 		cleanUdpTunRule();
 		String cmd2 = "iptables -I INPUT -p udp --dport " + routePort + " -j ACCEPT"
 				+ " -m comment --comment udptun_fs_server";
 		runCommand(cmd2);
 	}
 
-	void cleanUdpTunRule() {
+	private void cleanUdpTunRule() {
 		while (true) {
 			int row = getRow("udptun_fs_server");
 			if (row > 0) {
@@ -231,7 +209,7 @@ public class FSServer {
 		}
 	}
 
-	void setFireWall_linux_tcp() {
+	private void setFireWall_linux_tcp() {
 		cleanTcpTunRule();
 		String cmd2 = "iptables -I INPUT -p tcp --dport " + routePort + " -j DROP"
 				+ " -m comment --comment tcptun_fs_server ";
@@ -239,7 +217,7 @@ public class FSServer {
 
 	}
 
-	void cleanTcpTunRule() {
+	private void cleanTcpTunRule() {
 		while (true) {
 			int row = getRow("tcptun_fs_server");
 			if (row > 0) {
@@ -252,11 +230,11 @@ public class FSServer {
 		}
 	}
 
-	int getRow(String name) {
+	private int getRow(String name) {
 		int row_delect = -1;
 		String cme_list_rule = "iptables -L -n --line-number";
 		// String [] cmd={"netsh","advfirewall set allprofiles state on"};
-		Thread errorReadThread = null;
+		Thread errorReadThread;
 		try {
 			final Process p = Runtime.getRuntime().exec(cme_list_rule, null);
 
@@ -303,12 +281,11 @@ public class FSServer {
 										// "+line);
 										row_delect = Integer.parseInt(n);
 									}
-								} catch (Exception e) {
+								} catch (Exception ignored) {
 
 								}
 							}
 						}
-						;
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -325,9 +302,9 @@ public class FSServer {
 		return row_delect;
 	}
 
-	void runCommand(String command) {
-		Thread standReadThread = null;
-		Thread errorReadThread = null;
+	private void runCommand(String command) {
+		Thread standReadThread;
+		Thread errorReadThread;
 		try {
 			final Process p = Runtime.getRuntime().exec(command, null);
 			standReadThread = new Thread() {
@@ -382,9 +359,9 @@ public class FSServer {
 		}
 	}
 
-	String readFileData(String path) {
+	private String readFileData(String path) {
 		String content = null;
-		FileInputStream fis = null;
+		FileInputStream fis;
 		DataInputStream dis = null;
 		try {
 			File file = new File(path);
@@ -405,10 +382,6 @@ public class FSServer {
 			}
 		}
 		return content;
-	}
-
-	public int getRoutePort() {
-		return routePort;
 	}
 
 }

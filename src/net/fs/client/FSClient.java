@@ -4,7 +4,7 @@ package net.fs.client;
 
 import org.apache.commons.cli.*;
 
-public class FSClient {
+class FSClient {
 
     public static void main(String[] args) {
         CommandLineParser parser = new DefaultParser();
@@ -21,8 +21,8 @@ public class FSClient {
         }
 
         boolean visible=!commandLine.hasOption("b");
-        boolean min=commandLine.hasOption("min");
+        commandLine.hasOption("min");
         
-        new ClientUI(visible,min);
+        new ClientUI(visible);
     }
 }

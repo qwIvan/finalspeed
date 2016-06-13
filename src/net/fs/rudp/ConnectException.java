@@ -2,14 +2,11 @@
 
 package net.fs.rudp;
 
-import net.fs.utils.MLog;
-
-public class ConnectException extends Exception{
+class ConnectException extends Exception{
 	
 	private static final long serialVersionUID = 8735513900170495107L;
-	String message;
-	ConnectException(String message){
-		this.message=message;
+
+	ConnectException(){
 	}
 	@Override
 	public void printStackTrace(){

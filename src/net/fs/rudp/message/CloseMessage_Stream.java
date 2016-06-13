@@ -15,12 +15,9 @@ import net.fs.utils.ByteShortConvert;
 
 public class CloseMessage_Stream extends Message{
 	
-	public short sType=net.fs.rudp.message.MessageType.sType_CloseMessage_Stream;
-	
-	byte [] data;
-	byte [] dpData;
-	
-	int closeOffset;
+	private short sType=net.fs.rudp.message.MessageType.sType_CloseMessage_Stream;
+
+	private int closeOffset;
 	
 	public CloseMessage_Stream(int connectId,int clientId,int closeOffset){
 		byte[] dpData=new byte[16];
@@ -37,7 +34,7 @@ public class CloseMessage_Stream extends Message{
 	
 	public CloseMessage_Stream(DatagramPacket dp){
 		this.dp=dp;
-		dpData=dp.getData();
+		byte[] dpData = dp.getData();
 		ver=ByteShortConvert.toShort(dpData, 0);
 		sType=ByteShortConvert.toShort(dpData, 2);
 		

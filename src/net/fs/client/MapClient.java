@@ -1,89 +1,36 @@
-// Copyright (c) 2015 D1SM.net
-
 package net.fs.client;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import net.fs.rudp.ClientProcessorInterface;
+import net.fs.rudp.Route;
+import net.fs.rudp.Trafficlistener;
+
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Random;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
-import net.fs.rudp.ClientProcessorInterface;
-import net.fs.rudp.ConnectionProcessor;
-import net.fs.rudp.RUDPConfig;
-import net.fs.rudp.Route;
-import net.fs.rudp.TrafficEvent;
-import net.fs.rudp.Trafficlistener;
-import net.fs.utils.MLog;
-import net.fs.utils.NetStatus;
-
-public class MapClient implements Trafficlistener{
-
-	ConnectionProcessor imTunnelProcessor;
+class MapClient implements Trafficlistener{
 
 	Route route_udp,route_tcp;
 
-	short routePort=45;
-
-	ClientUII ui;
+	private ClientUII ui;
 
 	String serverAddress="";
 
-	InetAddress address=null;
-
 	int serverPort=130;
 
-	NetStatus netStatus;
+	private HashSet<ClientProcessorInterface> processTable= new HashSet<>();
+	
+	private final Object syn_process=new Object();
 
-	long lastTrafficTime;
-
-	int downloadSum=0;
-
-	int uploadSum=0;
-
-	Thread clientUISpeedUpdateThread;
-
-	int connNum=0;
+	private String systemName=System.getProperty("os.name").toLowerCase();
 	
-	HashSet<ClientProcessorInterface> processTable=new HashSet<ClientProcessorInterface>();
-	
-	Object syn_process=new Object();
-	
-	static MapClient mapClient;
-	
-	PortMapManager portMapManager;
-		
-	public String mapdstAddress;
-	 
-	public int mapdstPort;
-	
-	static int monPort=25874;
-	
-	String systemName=System.getProperty("os.name").toLowerCase();
-	
-	boolean useTcp=true;
-	
-	long clientId;
-
-	Random ran=new Random();
-	
-	boolean tcpEnable;
+	private boolean useTcp=true;
 
 	MapClient(ClientUI ui,boolean tcpEnvSuccess) throws Exception {
 		this.ui=ui;
-		mapClient=this;
 		try {
+			int monPort = 25874;
 			final ServerSocket socket=new ServerSocket(monPort);
 			new Thread(){
 				public void run(){
@@ -99,31 +46,20 @@ public class MapClient implements Trafficlistener{
 			//e.printStackTrace();
 			System.exit(0);
 		}
-		try {
-			route_tcp = new Route(null,routePort,Route.mode_client,true,tcpEnvSuccess);
-		} catch (Exception e1) {
-			//e1.printStackTrace();
-			throw e1;
-		}
-		try {
-			route_udp = new Route(null,routePort,Route.mode_client,false,tcpEnvSuccess);
-		} catch (Exception e1) {
-			//e1.printStackTrace();
-			throw e1;
-		}
-		netStatus=new NetStatus();
-		
-		portMapManager=new PortMapManager(this);
+		short routePort = 45;
+		route_tcp = new Route(null, routePort,Route.mode_client,true,tcpEnvSuccess);
+		route_udp = new Route(null, routePort,Route.mode_client,false,tcpEnvSuccess);
 
-		clientUISpeedUpdateThread=new Thread(){
-			public void run(){
-				while(true){
+		new PortMapManager(this);
+
+		Thread clientUISpeedUpdateThread = new Thread() {
+			public void run() {
+				while (true) {
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
 					}
-					updateUISpeed();
 				}
 			}
 		};
@@ -132,19 +68,8 @@ public class MapClient implements Trafficlistener{
 		Route.addTrafficlistener(this);
 		
 	}
-	
-	public static MapClient get(){
-		return mapClient;
-	}
 
-	private void updateUISpeed(){
-		if(ui!=null){
-			ui.updateUISpeed(connNum,netStatus.getDownSpeed(),netStatus.getUpSpeed());
-		}
-	}
-	
-	public void setMapServer(String serverAddress,int serverPort,int remotePort,String passwordMd5,String password_proxy_Md5,boolean direct_cn,boolean tcp,
-			String password){
+	void setMapServer(String serverAddress, int serverPort, boolean tcp){
 		if(this.serverAddress==null
 				||!this.serverAddress.equals(serverAddress)
 				||this.serverPort!=serverPort){
@@ -165,13 +90,12 @@ public class MapClient implements Trafficlistener{
 		}
 		this.serverAddress=serverAddress;
 		this.serverPort=serverPort;
-		address=null;
 		useTcp=tcp;
 		resetConnection();
 	}
 	
 
-	void setFireWallRule(String serverAddress,int serverPort){
+	private void setFireWallRule(String serverAddress, int serverPort){
 		String ip;
 		try {
 			ip = InetAddress.getByName(serverAddress).getHostAddress();
@@ -231,21 +155,22 @@ public class MapClient implements Trafficlistener{
 		
 	}
 	
-	void saveFile(byte[] data,String path) throws Exception{
+	private void saveFile(byte[] data, String path) throws Exception{
 		FileOutputStream fos=null;
 		try {
 			fos=new FileOutputStream(path);
 			fos.write(data);
-		} catch (Exception e) {
-			throw e;
 		} finally {
 			if(fos!=null){
-				fos.close();
+				try {
+					fos.close();
+				} catch (Exception ignored) {
+				}
 			}
 		}
 	}
 	
-	void cleanRule(){
+	private void cleanRule(){
 		if(systemName.contains("mac os")){
 			cleanTcpTunRule_osx();
 		}else if(systemName.contains("linux")){
@@ -268,13 +193,13 @@ public class MapClient implements Trafficlistener{
 		}
 	}
 	
-	void cleanTcpTunRule_osx(){
+	private void cleanTcpTunRule_osx(){
 		String cmd2="sudo ipfw delete 5050";
 		runCommand(cmd2);
 	}
 	
 	
-	void cleanTcpTunRule_linux(){
+	private void cleanTcpTunRule_linux(){
 		while(true){
 			int row=getRow_linux();
 			if(row>0){
@@ -287,11 +212,11 @@ public class MapClient implements Trafficlistener{
 		}
 	}
 
-	int getRow_linux(){
+	private int getRow_linux(){
 		int row_delect=-1;
 		String cme_list_rule="iptables -L -n --line-number";
 		//String [] cmd={"netsh","advfirewall set allprofiles state on"};
-		Thread errorReadThread=null;
+		Thread errorReadThread;
 		try {
 			final Process p = Runtime.getRuntime().exec(cme_list_rule,null);
 
@@ -305,8 +230,6 @@ public class MapClient implements Trafficlistener{
 							line = localBufferedReader.readLine();
 							if (line == null){ 
 								break;
-							}else{ 
-								//System.out.println("erroraaa "+line);
 							}
 						} catch (IOException e) {
 							e.printStackTrace();
@@ -339,11 +262,11 @@ public class MapClient implements Trafficlistener{
 										//System.out.println("standaaabbb "+line);
 										row_delect=Integer.parseInt(n);
 									}
-								} catch (Exception e) {
+								} catch (Exception ignored) {
 
 								}
 							}
-						};
+						}
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -361,55 +284,31 @@ public class MapClient implements Trafficlistener{
 		return row_delect;
 	}
 	
-	void resetConnection(){
+	private void resetConnection(){
 		synchronized (syn_process) {
 			
 		}
 	}
 	
-	public void onProcessClose(ClientProcessorInterface process){
+	void onProcessClose(ClientProcessorInterface process){
 		synchronized (syn_process) {
 			processTable.remove(process);
 		}
 	}
 
-	synchronized public void closeAndTryConnect_Login(boolean testSpeed){
-		close();
-		boolean loginOK=ui.login();
-		if(loginOK){
-			ui.updateNode(testSpeed);
-			//testPool();
-		}
-	}
-
-	synchronized public void closeAndTryConnect(){
-		close();
-		//testPool();
-	}
-
-	public void close(){
-		//closeAllProxyRequest();
-		//poolManage.close();
-		//CSocketPool.closeAll();
-	}
-	
-	public void trafficDownload(TrafficEvent event) {
+	public void trafficDownload() {
 		////#MLog.println("下载 "+event.getTraffic());
-		netStatus.addDownload(event.getTraffic());
-		lastTrafficTime=System.currentTimeMillis();
-		downloadSum+=event.getTraffic();
+		System.currentTimeMillis();
 	}
 
-	public void trafficUpload(TrafficEvent event) {
+	public void trafficUpload() {
 		////#MLog.println("上传 "+event.getTraffic());
-		netStatus.addUpload(event.getTraffic());
-		lastTrafficTime=System.currentTimeMillis();
-		uploadSum+=event.getTraffic();
+		System.currentTimeMillis();
 	}
 
-	static void runCommand(String command){
-		Thread standReadThread=null;
-		Thread errorReadThread=null;
+	private static void runCommand(String command){
+		Thread standReadThread;
+		Thread errorReadThread;
 		try {
 			final Process p = Runtime.getRuntime().exec(command,null);
 			standReadThread=new Thread(){
@@ -466,14 +365,6 @@ public class MapClient implements Trafficlistener{
 
 	public boolean isUseTcp() {
 		return useTcp;
-	}
-
-	public void setUseTcp(boolean useTcp) {
-		this.useTcp = useTcp;
-	}
-
-	public ClientUII getUi() {
-		return ui;
 	}
 
 	public void setUi(ClientUII ui) {

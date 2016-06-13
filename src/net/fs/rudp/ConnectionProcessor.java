@@ -5,5 +5,5 @@ package net.fs.rudp;
 
 
 public interface ConnectionProcessor {
-	abstract void process(final ConnectionUDP conn);
+	void process(final ConnectionUDP conn);
 }

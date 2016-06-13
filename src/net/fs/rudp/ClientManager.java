@@ -2,34 +2,28 @@
 
 package net.fs.rudp;
 
+import net.fs.utils.MLog;
+
 import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import net.fs.utils.MLog;
 
+class ClientManager {
+	
+	private HashMap<Integer, ClientControl> clientTable= new HashMap<>();
 
-public class ClientManager {
-	
-	HashMap<Integer, ClientControl> clientTable=new HashMap<Integer, ClientControl>();
-	
-	Thread mainThread;
-	
-	Route route;
-	
-	int receivePingTimeout=8*1000;
-	
-	int sendPingInterval=1*1000;
-	
-	Object syn_clientTable=new Object();
+	private Route route;
+
+	private final Object syn_clientTable=new Object();
 	
 	ClientManager(Route route){
 		this.route=route;
-		mainThread=new Thread(){
+		Thread mainThread = new Thread() {
 			@Override
-			public void run(){
-				while(true){
+			public void run() {
+				while (true) {
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
@@ -42,15 +36,17 @@ public class ClientManager {
 		mainThread.start();
 	}
 	
-	void scanClientControl(){
+	private void scanClientControl(){
 		Iterator<Integer> it=getClientTableIterator();
 		long current=System.currentTimeMillis();
 		//MLog.println("ffffffffffff "+clientTable.size());
 		while(it.hasNext()){
 			ClientControl cc=clientTable.get(it.next());
 			if(cc!=null){
-				if(current-cc.getLastReceivePingTime()<receivePingTimeout){
-					if(current-cc.getLastSendPingTime()>sendPingInterval){
+				int receivePingTimeout = 8 * 1000;
+				if(current-cc.getLastReceivePingTime()< receivePingTimeout){
+					int sendPingInterval = 1000;
+					if(current-cc.getLastSendPingTime()> sendPingInterval){
 						cc.sendPingMessage();
 					}
 				}else {
@@ -69,8 +65,8 @@ public class ClientManager {
 		clientTable.remove(clientId);
 	}
 	
-	Iterator<Integer> getClientTableIterator(){
-		Iterator<Integer> it=null;
+	private Iterator<Integer> getClientTableIterator(){
+		Iterator<Integer> it;
 		synchronized (syn_clientTable) {
 			it=new CopiedIterator(clientTable.keySet().iterator());
 		}

@@ -2,58 +2,42 @@
 
 package net.fs.client;
 
+import com.alibaba.fastjson.JSONObject;
+import net.fs.rudp.*;
+import net.fs.utils.MLog;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Random;
 
-import net.fs.rudp.ClientProcessorInterface;
-import net.fs.rudp.ConnectionUDP;
-import net.fs.rudp.Constant;
-import net.fs.rudp.Route;
-import net.fs.rudp.UDPInputStream;
-import net.fs.rudp.UDPOutputStream;
-import net.fs.utils.MLog;
+class PortMapProcess implements ClientProcessorInterface{
 
-import com.alibaba.fastjson.JSONObject;
+	private UDPInputStream  tis;
 
-public class PortMapProcess implements ClientProcessorInterface{
+	private UDPOutputStream tos;
 
-	Random ran=new Random();
+	private ConnectionUDP conn;
 
-	UDPInputStream  tis;
+	private MapClient mapClient;
 
-	UDPOutputStream tos;
+	private Socket srcSocket;
 
-	String serverAddress="";
+	private DataInputStream srcIs=null;
+	private DataOutputStream srcOs=null;
 
-	int serverPort;
+	private boolean closed=false;
 
-	ConnectionUDP conn;
-
-	MapClient mapClient;
-
-	public Socket srcSocket,dstSocket;
-
-	DataInputStream srcIs=null;
-	DataOutputStream srcOs=null;
-
-	boolean closed=false;
-	boolean success=false;
-
-	public PortMapProcess(MapClient mapClient,Route route,final Socket srcSocket,String serverAddress2,int serverPort2,String password_proxy_md5,
-			String dstAddress,final int dstPort){
+	public PortMapProcess(MapClient mapClient, Route route, final Socket srcSocket, String serverAddress2, int serverPort2,
+						  String dstAddress, final int dstPort){
 		this.mapClient=mapClient;
-		this.serverAddress=serverAddress2;
-		this.serverPort=serverPort2;
 
 		this.srcSocket=srcSocket;
 
 		try {
 			srcIs = new DataInputStream(srcSocket.getInputStream());
 			srcOs=new DataOutputStream(srcSocket.getOutputStream());
-			conn = route.getConnection(serverAddress, serverPort,null);
+			conn = route.getConnection(serverAddress2, serverPort2);
 			tis=conn.uis;
 			tos=conn.uos;
 
@@ -75,65 +59,49 @@ public class PortMapProcess implements ClientProcessorInterface{
 			JSONObject responeJSon=JSONObject.parseObject(hs);
 			int code=responeJSon.getIntValue("code");
 			String message=responeJSon.getString("message");
-			String uimessage="";
+			String uimessage;
 			if(code==Constant.code_success){
 
-				Route.es.execute(new Runnable() {
+				Route.es.execute(() -> {
+                    long t=System.currentTimeMillis();
+                    p2.setDstPort(dstPort);
+                    try {
+                        p2.pipe(tis, srcOs);
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }finally{
+                        close();
+                        if(p2.getReadedLength()==0){
+                            //String msg="fs服务连接成功,加速端口"+dstPort+"连接失败1";
+                            String msg="端口"+dstPort+"无返回数据";
+                            MLog.println(msg);
+                        }
+                    }
+                });
 
-					@Override
-					public void run() {
-						long t=System.currentTimeMillis();
-						p2.setDstPort(dstPort);
-						try {
-							p2.pipe(tis, srcOs,1024*1024*1024,null);
-						}catch (Exception e) {
-							e.printStackTrace();
-						}finally{
-							close();
-							if(p2.getReadedLength()==0){
-								//String msg="fs服务连接成功,加速端口"+dstPort+"连接失败1";
-								String msg="端口"+dstPort+"无返回数据";
-								MLog.println(msg);
-								ClientUI.ui.setMessage(msg);
-							}
-						}
-					}
-
-				});
-
-				Route.es.execute(new Runnable() {
-
-					@Override
-					public void run() {
-						try {
-							p1.pipe(srcIs, tos,200*1024,p2);
-						} catch (Exception e) {
-							//e.printStackTrace();
-						}finally{
-							close();
-						}
-					}
-
-				});
-				success=true;
-				uimessage=("fs服务连接成功");
-				ClientUI.ui.setMessage(uimessage);
+				Route.es.execute(() -> {
+                    try {
+                        p1.pipe(srcIs, tos);
+                    } catch (Exception e) {
+                        //e.printStackTrace();
+                    }finally{
+                        close();
+                    }
+                });
 			}else {
 				close();
 				uimessage="fs服务连接成功,端口"+dstPort+"连接失败2";
-				ClientUI.ui.setMessage(uimessage);
 				MLog.println(uimessage);
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			String msg="fs服务连接失败!";
-			ClientUI.ui.setMessage(msg);
 			MLog.println(msg);
 		}
 
 	}
 
-	void close(){
+	private void close(){
 		if(!closed){
 			closed=true;
 			if(srcIs!=null){
@@ -171,12 +139,4 @@ public class PortMapProcess implements ClientProcessorInterface{
 		}
 	}
 
-	@Override
-	public void onMapClientClose() {
-		try {
-			srcSocket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 }

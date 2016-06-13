@@ -2,7 +2,7 @@
 
 package net.fs.client;
 
-public class ClientStartNoUI {
+class ClientStartNoUI {
 
 	public static void main(String[] args) {
 		new ClientNoUI();
