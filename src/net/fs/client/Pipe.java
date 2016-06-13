@@ -21,7 +21,6 @@ public class Pipe {
 		byte[] buf=new byte[100*1024];
 		boolean sendeda=false;
 		while((len=is.read(buf))>0){
-			boolean readed = true;
 			if(!sendeda){
 				sendeda=true;
 			}
@@ -43,13 +42,10 @@ public class Pipe {
 				sendedb=true;
 			}
 			if(dstPort>0){
-				if(FSClient.ui!=null){
-					if(!msged){
-						msged=true;
-						String msg="端口"+dstPort+"连接成功";
-						System.out.println(msg);
-					}
-					
+				if(!msged){
+					msged=true;
+					String msg="端口"+dstPort+"连接成功";
+					System.out.println(msg);
 				}
 			}
 			os.write(buf, 0, len);

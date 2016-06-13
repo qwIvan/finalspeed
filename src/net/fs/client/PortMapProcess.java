@@ -18,7 +18,7 @@ class PortMapProcess implements ClientProcessorInterface{
 
 	private ConnectionUDP conn;
 
-	private MapClient mapClient;
+	private FSClient FSClient;
 
 	private Socket srcSocket;
 
@@ -27,9 +27,9 @@ class PortMapProcess implements ClientProcessorInterface{
 
 	private boolean closed=false;
 
-	public PortMapProcess(MapClient mapClient, Route route, final Socket srcSocket, String serverAddress2, int serverPort2,
+	public PortMapProcess(FSClient FSClient, Route route, final Socket srcSocket, String serverAddress2, int serverPort2,
 						  String dstAddress, final int dstPort){
-		this.mapClient=mapClient;
+		this.FSClient = FSClient;
 
 		this.srcSocket=srcSocket;
 
@@ -133,7 +133,7 @@ class PortMapProcess implements ClientProcessorInterface{
 					e.printStackTrace();
 				}
 			}
-			mapClient.onProcessClose(this);
+			FSClient.onProcessClose(this);
 
 		}
 	}

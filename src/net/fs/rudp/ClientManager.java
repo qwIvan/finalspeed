@@ -14,7 +14,7 @@ class ClientManager {
 
 	private Route route;
 
-	private Object syn_clientTable=new Object();
+	private final Object syn_clientTable=new Object();
 	
 	ClientManager(Route route){
 		this.route=route;
@@ -35,7 +35,10 @@ class ClientManager {
 	}
 	
 	private void scanClientControl(){
-		Iterator<Integer> it=getClientTableIterator();
+		Iterator<Integer> it=null;
+		synchronized (syn_clientTable) {
+			it=new CopiedIterator(clientTable.keySet().iterator());
+		}
 		long current=System.currentTimeMillis();
 		//System.out.println("ffffffffffff "+clientTable.size());
 		while(it.hasNext()){
@@ -61,14 +64,6 @@ class ClientManager {
 	
 	void removeClient(int clientId){
 		clientTable.remove(clientId);
-	}
-	
-	private Iterator<Integer> getClientTableIterator(){
-		Iterator<Integer> it=null;
-		synchronized (syn_clientTable) {
-			it=new CopiedIterator(clientTable.keySet().iterator());
-		}
-		return it;
 	}
 	
 	ClientControl getClientControl(int clientId,InetAddress dstIp,int dstPort){

@@ -166,7 +166,7 @@ public class Sender {
 				if(block){
 					conn.clientControl.sendSleep(startTime, me.getData().length);
 				}
-				TrafficEvent event=new TrafficEvent(me.getData().length,TrafficEvent.type_uploadTraffic);
+				TrafficEvent event=new TrafficEvent(TrafficEvent.type_uploadTraffic);
 				Route.fireEvent(event);
 			} catch (IOException e) {
 				e.printStackTrace();
